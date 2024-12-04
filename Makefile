@@ -54,7 +54,7 @@ deploy: publish
 .PHONY: coverage
 coverage: get ## Generate the coverage report
 	@flutter test --coverage --concurrency=40 test/unit_test.dart test/widget_test.dart
-	@lcov --remove coverage/lcov.info 'lib/**/*.g.dart' -o coverage/lcov.info
+#	@lcov --remove coverage/lcov.info 'lib/**/*.g.dart' -o coverage/lcov.info
 	@lcov --list coverage/lcov.info
 	@genhtml -o coverage coverage/lcov.info
 
