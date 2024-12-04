@@ -1,4 +1,4 @@
-library repaint;
+library;
 
 export 'src/repaint.dart';
 export 'src/repainter_base.dart';
