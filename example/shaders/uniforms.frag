@@ -25,13 +25,10 @@ float colorCos(float time) {
     return (cos(time * 2.0f * PI) + 1.0f) / 2.0f;
 }
 
-float colorSinSlow(float time) {
-    return (sin(time * 2.0f * PI / 4.0f) + 1.0f) / 2.0f;
-}
-
 void main() {
     //vec2 currentPos = FlutterFragCoord().xy;
     float r = colorSin(iTime);
-    float g = colorCos(iTime);
-    fragColor = vec4(r, g, .0f, 1.0f);
+    float g = colorCos(iTime / 4.0f);
+    float b = interpolate(0.25f, 0.75f, colorSin(iTime / 2.0f)) + 0.25f;
+    fragColor = vec4(r, g, b, 1.0f);
 }

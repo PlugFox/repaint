@@ -53,7 +53,7 @@ class FragmentShadersScreen extends StatelessWidget {
               shader: 'uniforms',
               frameRate: null,
               render: (canvas, size, shader, paint) {
-                final now = DateTime.now().millisecond / 1000;
+                final now = DateTime.now().millisecondsSinceEpoch / 10000 % 10;
                 // clamp(abs(0.5f + 0.5f * sin(time * PI / 4.0f)), 0.0f, 1.0f)
                 //print((math.sin(now.clamp(0, 1) / (2 * math.pi))).abs());
                 shader
