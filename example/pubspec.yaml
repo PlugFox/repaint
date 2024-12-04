@@ -63,3 +63,4 @@ flutter:
 
   shaders:
     - shaders/simple.frag
+    - shaders/uniforms.frag

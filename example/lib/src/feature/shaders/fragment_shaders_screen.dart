@@ -1,3 +1,4 @@
+import 'dart:math' as math; // ignore: unused_import
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -43,11 +44,27 @@ class FragmentShadersScreen extends StatelessWidget {
             ),
             ShaderContainer(
               shader: 'simple',
-              blendMode: BlendMode.src,
-              render: (canvas, size, paint) => canvas.drawRect(
+              render: (canvas, size, shader, paint) => canvas.drawRect(
                 Offset.zero & size,
                 paint,
               ),
+            ),
+            ShaderContainer(
+              shader: 'uniforms',
+              frameRate: null,
+              render: (canvas, size, shader, paint) {
+                final now = DateTime.now().millisecond / 1000;
+                // clamp(abs(0.5f + 0.5f * sin(time * PI / 4.0f)), 0.0f, 1.0f)
+                //print((math.sin(now.clamp(0, 1) / (2 * math.pi))).abs());
+                shader
+                  ..setFloat(0, size.width)
+                  ..setFloat(1, size.height)
+                  ..setFloat(2, now);
+                canvas.drawRect(
+                  Offset.zero & size,
+                  paint,
+                );
+              },
             ),
           ],
         ),
@@ -71,7 +88,12 @@ class ShaderContainer extends StatelessWidget {
   final double height;
 
   /// Render the shader.
-  final void Function(Canvas canvas, Size size, Paint paint) render;
+  final void Function(
+    Canvas canvas,
+    Size size,
+    ui.FragmentShader shader,
+    Paint paint,
+  ) render;
 
   /// Blend mode for the shader.
   final BlendMode blendMode;
@@ -112,15 +134,27 @@ class ShaderContainer extends StatelessWidget {
                                   ),
                                 ),
                                 Positioned.fill(
-                                  child: RePaint.inline<Paint>(
+                                  child: RePaint.inline<
+                                      ({
+                                        ui.FragmentShader shader,
+                                        Paint paint
+                                      })>(
                                     frameRate: frameRate,
-                                    setUp: (box) => Paint()
-                                      ..blendMode = blendMode
-                                      ..shader = fragmentShader,
-                                    update: (_, paint, ___) =>
-                                        paint..blendMode = blendMode,
-                                    render: (box, paint, canvas) =>
-                                        render(canvas, box.size, paint),
+                                    setUp: (box) => (
+                                      shader: fragmentShader,
+                                      paint: Paint()
+                                        ..blendMode = blendMode
+                                        ..shader = fragmentShader
+                                        ..filterQuality = FilterQuality.none
+                                        ..isAntiAlias = false,
+                                    ),
+                                    update: (_, state, ___) =>
+                                        state..paint.blendMode = blendMode,
+                                    render: (box, state, canvas) => render(
+                                        canvas,
+                                        box.size,
+                                        state.shader,
+                                        state.paint),
                                   ),
                                 ),
                                 Positioned(
