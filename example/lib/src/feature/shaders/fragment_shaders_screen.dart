@@ -44,7 +44,7 @@ class FragmentShadersScreen extends StatelessWidget {
             ),
             ShaderContainer(
               shader: 'simple',
-              render: (canvas, size, shader, paint) => canvas.drawRect(
+              render: (canvas, size, _, shader, paint) => canvas.drawRect(
                 Offset.zero & size,
                 paint,
               ),
@@ -52,14 +52,16 @@ class FragmentShadersScreen extends StatelessWidget {
             ShaderContainer(
               shader: 'uniforms',
               frameRate: null,
-              render: (canvas, size, shader, paint) {
+              render: (canvas, size, mouse, shader, paint) {
                 final now = DateTime.now().millisecondsSinceEpoch / 10000 % 10;
                 // clamp(abs(0.5f + 0.5f * sin(time * PI / 4.0f)), 0.0f, 1.0f)
                 //print((math.sin(now.clamp(0, 1) / (2 * math.pi))).abs());
                 shader
                   ..setFloat(0, size.width)
                   ..setFloat(1, size.height)
-                  ..setFloat(2, now);
+                  ..setFloat(2, mouse.dx)
+                  ..setFloat(3, mouse.dy)
+                  ..setFloat(4, now);
                 canvas.drawRect(
                   Offset.zero & size,
                   paint,
@@ -91,6 +93,7 @@ class ShaderContainer extends StatelessWidget {
   final void Function(
     Canvas canvas,
     Size size,
+    Offset mouse,
     ui.FragmentShader shader,
     Paint paint,
   ) render;
@@ -102,38 +105,43 @@ class ShaderContainer extends StatelessWidget {
   final int? frameRate;
 
   @override
-  Widget build(BuildContext context) => SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverToBoxAdapter(
-          child: SizedBox(
-            height: 256,
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Expanded(
-                  child: FutureBuilder<ui.FragmentShader>(
-                    initialData: null,
-                    future: ResourceManager.loadShader('shaders/$shader.frag'),
-                    builder: (context, snapshot) =>
-                        switch (snapshot.connectionState) {
-                      ConnectionState.waiting ||
-                      ConnectionState.active ||
-                      ConnectionState.none =>
-                        const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      ConnectionState.done => switch (snapshot.data) {
-                          ui.FragmentShader fragmentShader => Stack(
-                              children: <Widget>[
-                                const Positioned.fill(
-                                  child: ColoredBox(
-                                    color: Colors.grey,
-                                    child: SizedBox.expand(),
-                                  ),
+  Widget build(BuildContext context) {
+    var mouse = Offset.zero;
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverToBoxAdapter(
+        child: SizedBox(
+          height: 256,
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Expanded(
+                child: FutureBuilder<ui.FragmentShader>(
+                  initialData: null,
+                  future: ResourceManager.loadShader('shaders/$shader.frag'),
+                  builder: (context, snapshot) =>
+                      switch (snapshot.connectionState) {
+                    ConnectionState.waiting ||
+                    ConnectionState.active ||
+                    ConnectionState.none =>
+                      const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ConnectionState.done => switch (snapshot.data) {
+                        ui.FragmentShader fragmentShader => Stack(
+                            children: <Widget>[
+                              const Positioned.fill(
+                                child: ColoredBox(
+                                  color: Colors.grey,
+                                  child: SizedBox.expand(),
                                 ),
-                                Positioned.fill(
+                              ),
+                              Positioned.fill(
+                                child: MouseRegion(
+                                  onHover: (event) =>
+                                      mouse = event.localPosition,
                                   child: RePaint.inline<
                                       ({
                                         ui.FragmentShader shader,
@@ -151,42 +159,45 @@ class ShaderContainer extends StatelessWidget {
                                     update: (_, state, ___) =>
                                         state..paint.blendMode = blendMode,
                                     render: (box, state, canvas) => render(
-                                        canvas,
-                                        box.size,
-                                        state.shader,
-                                        state.paint),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  left: 8,
-                                  height: 24,
-                                  right: 8,
-                                  child: Align(
-                                    alignment: Alignment.topLeft,
-                                    child: Text(
-                                      shader,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelLarge,
+                                      canvas,
+                                      box.size,
+                                      mouse,
+                                      state.shader,
+                                      state.paint,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          null => const Center(
-                              child: Text('Failed to load shader.'),
-                            ),
-                        },
-                    },
-                  ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                height: 24,
+                                right: 8,
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Text(
+                                    shader,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style:
+                                        Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        null => const Center(
+                            child: Text('Failed to load shader.'),
+                          ),
+                      },
+                  },
                 ),
-                const Divider(height: 1, color: Colors.black26, thickness: 1),
-              ],
-            ),
+              ),
+              const Divider(height: 1, color: Colors.black26, thickness: 1),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
