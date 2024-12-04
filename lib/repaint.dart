@@ -1,7 +1,5 @@
 library repaint;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+export 'src/repaint.dart';
+export 'src/repainter_base.dart';
+export 'src/repainter_interface.dart';
