@@ -52,15 +52,17 @@ void main() {
         // Верхний правый угол
         // Рисум круг вокруг мыши с радиусом 5 пикселей
         vec2 mouse = iMouse / iResolution; // normalized mouse coordinates
+        float dst = 10.0f;
         if(mouse.x > 0.5f && mouse.y < 0.5f) {
-            float dst = distance(iMouse.xy, pos.xy);
-            if(dst < 5.0f) {
-                // Дистанция от мыши до пикселя меньше 5 пикселей - белый цвет
-                fragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-            } else {
-                // Дистанция от мыши до пикселя больше 5 пикселей - черный цвет
-                fragColor = vec4(0, 0, 0, 1.0f);
-            }
+            // Мышь в верхнем правом углу
+            dst = abs(distance(iMouse.xy, pos.xy)); // distance from mouse to pixel
+        }
+        if(dst < 5.0f) {
+            // Дистанция от мыши до пикселя меньше 5 пикселей - рисуем круг
+            fragColor = vec4(uv.x, uv.y, uv.x * uv.y, 1.0f);
+        } else {
+            // Дистанция от мыши до пикселя больше 5 пикселей - инвертируем градиент
+            fragColor = vec4(1.0f - uv.x, 1.0f - uv.y, 1.0f - uv.x * uv.y, 1.0f);
         }
     } else if(uv.x < 0.5f && uv.y > 0.5f) {
         // Нижний левый угол

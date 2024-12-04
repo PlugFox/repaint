@@ -145,7 +145,7 @@ class ShaderContainer extends StatelessWidget {
                                   child: RePaint.inline<
                                       ({
                                         ui.FragmentShader shader,
-                                        Paint paint
+                                        Paint paint,
                                       })>(
                                     frameRate: frameRate,
                                     setUp: (box) => (
@@ -174,13 +174,30 @@ class ShaderContainer extends StatelessWidget {
                                 height: 24,
                                 right: 8,
                                 child: Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Text(
-                                    shader,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style:
-                                        Theme.of(context).textTheme.labelLarge,
+                                  alignment: Alignment.centerLeft,
+                                  child: DecoratedBox(
+                                    position: DecorationPosition.background,
+                                    decoration: ShapeDecoration(
+                                      color: Colors.black54,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: Text(
+                                        shader,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelLarge
+                                            ?.copyWith(
+                                              height: 1,
+                                              color: Colors.white,
+                                            ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
