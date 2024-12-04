@@ -20,6 +20,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # RePaint library
+  repaint:
+    path: ../
+
   # Localizations
   #flutter_localizations:
   #  sdk: flutter

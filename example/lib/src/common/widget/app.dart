@@ -1,21 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:repaintexample/src/feature/canvas/canvas_screen.dart';
+import 'package:repaintexample/src/common/widget/routes.dart';
 import 'package:repaintexample/src/feature/home/home_screen.dart';
-
-/// The routes to navigate to.
-final Map<String, Page<void> Function(Map<String, Object?>?)> routes =
-    <String, Page<void> Function(Map<String, Object?>?)>{
-  'home': (arguments) => MaterialPage<void>(
-        name: 'home',
-        child: const HomeScreen(),
-        arguments: arguments,
-      ),
-  'canvas': (arguments) => MaterialPage<void>(
-        name: 'canvas',
-        child: const CanvasScreen(),
-        arguments: arguments,
-      ),
-};
 
 /// {@template app}
 /// App widget.
@@ -71,7 +56,7 @@ class _AppState extends State<App> {
   void push(String page, [Map<String, Object?>? arguments]) {
     assert(page.isNotEmpty, 'Page name cannot be empty.');
     // Router
-    final newPage = routes[page]?.call(arguments);
+    final newPage = $routes[page]?.call(arguments);
     assert(newPage != null, 'Page not found: $page');
     if (newPage == null) return;
     _pages.value = List<Page<void>>.unmodifiable({
