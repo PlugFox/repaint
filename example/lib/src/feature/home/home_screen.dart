@@ -28,6 +28,10 @@ class HomeScreen extends StatelessWidget {
                     title: 'Clock',
                     page: 'clock',
                   ),
+                  HomeTile(
+                    title: 'Shaders',
+                    page: 'shaders',
+                  ),
                 ],
               ),
             ),
