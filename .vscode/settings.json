@@ -64,7 +64,7 @@
     ".gitignore": ".gitattributes, .gitmodules, .gitmessage, .mailmap, .git-blame*",
     "readme.*": "authors, backers.md, changelog*, citation*, code_of_conduct.md, codeowners, contributing.md, contributors, copying, credits, governance.md, history.md, license*, maintainers, readme*, security.md, sponsors.md",
     "*.dart": "$(capture).g.dart, $(capture).freezed.dart, $(capture).config.dart"
-  }
+  },
   /* "files.associations": {
     "*.drift": "sql"
   }, */
@@ -80,5 +80,19 @@
         }
       ]
     }
-  } */
+  }, */
+  // -- Shaders -- //
+  "glsl-canvas.refreshOnChange": false,
+  "glsl-canvas.refreshOnSave": true,
+  "[glsl]": {
+    "editor.defaultFormatter": "raczzalan.webgl-glsl-editor"
+  },
+  "[frag]": {
+    "editor.defaultFormatter": "raczzalan.webgl-glsl-editor"
+  },
+  "[vert]": {
+    "editor.defaultFormatter": "raczzalan.webgl-glsl-editor"
+  },
+  "editor.defaultFormatter": "raczzalan.webgl-glsl-editor",
+  "notebook.defaultFormatter": "raczzalan.webgl-glsl-editor",
 }
