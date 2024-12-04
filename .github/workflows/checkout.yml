@@ -95,7 +95,7 @@ jobs:
         run: |
           test -f pubspec.yaml && test -f CHANGELOG.md
           version_pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/[^[:print:]]//g')
-          test -n "$version_pubspec" && test -n "$version_dart"
+          test -n "$version_pubspec"
           echo "Version from pubspec.yaml: '$version_pubspec'"
           echo "$version_pubspec" > /tmp/version_pubspec
           grep -q "# $version_pubspec" CHANGELOG.md || (echo "Version not found in CHANGELOG.md" >&2; exit 1)
