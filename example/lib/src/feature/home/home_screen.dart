@@ -29,8 +29,8 @@ class HomeScreen extends StatelessWidget {
                     page: 'clock',
                   ),
                   HomeTile(
-                    title: 'Shaders',
-                    page: 'shaders',
+                    title: 'Fragment Shaders',
+                    page: 'fragment-shaders',
                   ),
                 ],
               ),
