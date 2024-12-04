@@ -27,45 +27,36 @@ format: ## Format the code
 
 .PHONY: get
 get: ## Get the dependencies
-	@dart pub get
+	@flutter pub get
 
 .PHONY: outdated
 outdated: get ## Check for outdated dependencies
-	@dart pub outdated --show-all --dev-dependencies --dependency-overrides --transitive --no-prereleases
+	@flutter pub outdated --show-all --dev-dependencies --dependency-overrides --transitive --no-prereleases
 
 .PHONY: test
 test: get ## Run the tests
-	@dart test --debug --coverage=coverage --platform vm,chrome test/unit_test.dart
+	@flutter test --concurrency=40 test/unit_test.dart test/widget_test.dart
 
 .PHONY: publish-check
 publish-check: ## Check the package before publishing
-	@dart pub publish --dry-run
+	@flutter pub publish --dry-run
 
 .PHONY: deploy-check
 deploy-check: publish-check
 
 .PHONY: publish
 publish: ## Publish the package
-	@yes | dart pub publish
+	@yes | flutter pub publish
 
 .PHONY: deploy
 deploy: publish
 
 .PHONY: coverage
 coverage: get ## Generate the coverage report
-#	@dart pub global activate coverage
-#	@dart pub global run coverage:test_with_coverage -fb -o coverage -- \
-#		--platform vm --compiler=kernel --coverage=coverage \
-#		--reporter=expanded --file-reporter=json:coverage/tests.json \
-#		--timeout=10m --concurrency=12 --color \
-#			test/unit_test.dart test/widget_test.dart
-#	@dart test --concurrency=6 --platform vm --coverage=coverage test/
-#	@dart run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
-#	@mv coverage/lcov.info coverage/lcov.base.info
-#	@lcov -r coverage/lcov.base.info -o coverage/lcov.base.info "lib/src/protobuf/client.*.dart" "lib/**/*.g.dart"
-#	@mv coverage/lcov.base.info coverage/lcov.info
-#	@lcov --list coverage/lcov.info
-#	@genhtml -o coverage coverage/lcov.info
+	@flutter test --coverage --concurrency=40 test/unit_test.dart test/widget_test.dart
+	@lcov --remove coverage/lcov.info 'lib/**/*.g.dart' -o coverage/lcov.info
+	@lcov --list coverage/lcov.info
+	@genhtml -o coverage coverage/lcov.info
 
 .PHONY: analyze
 analyze: get ## Analyze the code

@@ -9,7 +9,8 @@ void main() {
     testWidgets(
       'Pump RePaint',
       (tester) async {
-        final widget = RePaint(painter: RePainterFake());
+        final painter = RePainterFake();
+        final widget = RePaint(painter: painter);
         await tester.pumpWidget(widget);
         expect(find.byWidget(widget), allOf(isNotNull, findsOneWidget));
         expect(
@@ -40,13 +41,27 @@ void main() {
                 ),
           ),
         );
-        final box = context.renderObject as RePaintBox;
+        await tester.pumpWidget(RePaint(painter: painter));
+        expect(find.byType(RePaint), findsOneWidget);
+        final box =
+            find.byType(RePaint).evaluate().single.renderObject as RePaintBox;
         expect(
           box,
           allOf(
             isNotNull,
             isA<RenderObject>(),
             isA<RePaintBox>()
+                .having(
+                  (r) => r.context.widget,
+                  'painter',
+                  allOf(
+                    isNotNull,
+                    isA<Widget>(),
+                    isA<LeafRenderObjectWidget>(),
+                    isA<RePaint>(),
+                    isNot(same(widget)),
+                  ),
+                )
                 .having(
                   (r) => r.painter,
                   'painter',
@@ -55,7 +70,7 @@ void main() {
                     isA<IRePainter>(),
                     isA<RePainterBase>(),
                     isA<RePainterFake>(),
-                    same(widget.painter),
+                    same(painter),
                   ),
                 )
                 .having(
