@@ -154,8 +154,8 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   /// This method is periodically invoked by the [_ticker].
   void _onTick(Duration elapsed) {
     if (!attached) return;
-    final durationDelta = elapsed - _previous;
-    final delta = durationDelta.inMicroseconds / Duration.microsecondsPerSecond;
+    final delta =
+        (elapsed - _previous).inMicroseconds / Duration.microsecondsPerSecond;
     switch (_painter.frameRate) {
       case null:
         // No frame rate limit.
