@@ -1,9 +1,9 @@
 name: repaint
 
 description: >
-  Custom paint alternative for Flutter, with more features.
+  Library for creating and managing a canvas similar to CustomPaint but with more features.
 
-version: 0.0.1
+version: 0.0.2
 
 homepage: https://github.com/PlugFox/repaint
 

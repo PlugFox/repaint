@@ -1,0 +1,61 @@
+name: repaintexample
+description: "RePaint Example"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  windows:
+  web:
+
+environment:
+  sdk: ^3.5.0
+  flutter: ">=3.20.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # RePaint library
+  repaint:
+    path: ../
+
+  # Localizations
+  #flutter_localizations:
+  #  sdk: flutter
+  #intl: ^0.19.0
+
+  # Utility libraries
+  collection: any
+  async: any
+  convert: any
+  path: any
+
+  # Annotations
+  meta: any
+
+  # Logger
+  l: ^5.0.0
+
+  # State management
+  #control: ^0.2.0
+
+  # Fonts and icons
+  #cupertino_icons: ^1.0.8
+  #font_awesome_flutter: ^10.7.0
+  #google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+dependency_overrides:
+  web: ^1.0.0
+
+flutter:
+  uses-material-design: true

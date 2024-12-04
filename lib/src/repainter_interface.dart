@@ -26,8 +26,7 @@ abstract interface class IRePainter {
   void update(RePaintBox box, Duration elapsed, double delta);
 
   /// Render current scene.
-  /// Can be scheduled by `markNeedsPaint` to repaint the scene
-  /// and render the updated objects after the [update] method.
+  /// Render the updated objects after the [update] method.
   void render(RePaintBox box, Canvas canvas);
 
   /// Unmount and dispose the controller.

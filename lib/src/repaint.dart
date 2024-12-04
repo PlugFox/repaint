@@ -2,6 +2,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import 'repaint_inline.dart';
 import 'repainter_interface.dart';
 
 /// {@template repaint}
@@ -13,6 +14,33 @@ class RePaint extends LeafRenderObjectWidget {
     required this.painter,
     super.key,
   });
+
+  /// Create a new [RePaint] widget with an inline controller.
+  /// The [T] is the custom state type.
+  /// The [frameRate] is used to limit the frame rate.
+  /// The [setUp] is called when the controller is attached to the render box.
+  /// The [update] is called periodically by the loop.
+  /// The [render] is called to render the scene after the update.
+  /// The [tearDown] is called to unmount and dispose the controller.
+  /// The [key] is used to identify the widget.
+  ///
+  /// {@macro repaint}
+  static Widget inline<T>({
+    required void Function(RePaintBox box, T state, Canvas canvas) render,
+    T Function(RePaintBox box)? setUp,
+    T? Function(RePaintBox box, T state, double delta)? update,
+    void Function(T state)? tearDown,
+    int? frameRate,
+    Key? key,
+  }) =>
+      RePaintInline<T>(
+        render: render,
+        setUp: setUp,
+        update: update,
+        tearDown: tearDown,
+        frameRate: frameRate,
+        key: key,
+      );
 
   /// The painter controller.
   final IRePainter painter;

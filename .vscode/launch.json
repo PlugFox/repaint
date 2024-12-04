@@ -1,4 +1,17 @@
 {
   "version": "0.2.0",
-  "configurations": []
+  "configurations": [
+    {
+      "name": "Example (Debug)",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "request": "launch",
+      "flutterMode": "debug",
+      "cwd": "${workspaceFolder}/example",
+      "args": [
+        "--dart-define-from-file=config/development.json",
+      ],
+      "env": {}
+    }
+  ]
 }

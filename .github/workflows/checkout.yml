@@ -20,12 +20,7 @@ on:
   #    - "lib/**.dart"
   #    - "test/**.dart"
   #    - "packages/**"
-  #    - "web/**"
-  #    - "android/**"
-  #    - "ios/**"
-  #    - "windows/**"
-  #    - "linux/**"
-  #    - "macos/**"
+  #    - "example/**.dart"
   pull_request:
     branches:
       - "main"
@@ -42,7 +37,7 @@ on:
       - ".github/**.yml"
       - "lib/**.dart"
       - "test/**.dart"
-      - "example/lib/**.dart"
+      - "example/**.dart"
 
 permissions:
   contents: read
