@@ -1,0 +1,121 @@
+name: Checkout
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+      - "master"
+      #- "dev"
+      #- "develop"
+      #- "feature/**"
+      #- "bugfix/**"
+      #- "hotfix/**"
+      #- "support/**"
+  #  paths:
+  #    - "pubspec.yaml"
+  #    - "pubspec.lock"
+  #    - ".github/**.yaml"
+  #    - ".github/**.yml"
+  #    - "lib/**.dart"
+  #    - "test/**.dart"
+  #    - "packages/**"
+  #    - "web/**"
+  #    - "android/**"
+  #    - "ios/**"
+  #    - "windows/**"
+  #    - "linux/**"
+  #    - "macos/**"
+  pull_request:
+    branches:
+      - "main"
+      - "master"
+      - "dev"
+      - "develop"
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+      - "support/**"
+    paths:
+      - "pubspec.yaml"
+      - ".github/**.yaml"
+      - ".github/**.yml"
+      - "lib/**.dart"
+      - "test/**.dart"
+      - "example/lib/**.dart"
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checkout:
+    name: "🧪 Check code with analysis, format, and tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    timeout-minutes: 10
+    steps:
+      - name: 📦 Get the .github actions
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+
+      - name: 🚂 Setup Flutter and dependencies
+        uses: ./.github/actions/setup
+        with:
+          flutter-version: 3.24.3
+
+      - name: 👷 Install Dependencies
+        timeout-minutes: 1
+        run: |
+          flutter pub get
+
+      - name: 🚦 Check code format
+        id: check-format
+        timeout-minutes: 1
+        run: |
+          find lib test -name "*.dart" ! -name "*.*.dart" -print0 | xargs -0 dart format --set-exit-if-changed --line-length 80 -o none lib/ test/
+
+      - name: 📈 Check analyzer
+        id: check-analyzer
+        timeout-minutes: 1
+        run: flutter analyze --fatal-infos --fatal-warnings lib/ test/
+
+      - name: 👀 Verify versions
+        id: verify-versions
+        timeout-minutes: 1
+        run: |
+          test -f pubspec.yaml && test -f CHANGELOG.md
+          version_pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/[^[:print:]]//g')
+          test -n "$version_pubspec" && test -n "$version_dart"
+          echo "Version from pubspec.yaml: '$version_pubspec'"
+          echo "$version_pubspec" > /tmp/version_pubspec
+          grep -q "# $version_pubspec" CHANGELOG.md || (echo "Version not found in CHANGELOG.md" >&2; exit 1)
+
+      - name: 🧪 Unit & Widget tests
+        timeout-minutes: 20
+        run: |
+          flutter test --coverage --concurrency=40 test/unit_test.dart test/widget_test.dart
+
+      #- name: 📥 Upload coverage report
+      #  timeout-minutes: 5
+      #  if: ${{ github.actor != 'dependabot[bot]' }}
+      #  uses: codecov/codecov-action@v2
+      #  with:
+      #    token: ${{ secrets.CODECOV_TOKEN }}
+      #    files: ./coverage/lcov.info
+
+      - name: 📥 Upload test report
+        uses: actions/upload-artifact@v4
+        if: (success() || failure()) && ${{ github.actor != 'dependabot[bot]' }}
+        with:
+          name: test-results
+          path: reports/tests.json
