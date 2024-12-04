@@ -62,4 +62,4 @@ flutter:
   uses-material-design: true
 
   shaders:
-    - shaders/simple.glsl
+    - shaders/simple.frag

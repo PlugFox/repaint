@@ -93,7 +93,7 @@ class ShaderContainer extends StatelessWidget {
                 Expanded(
                   child: FutureBuilder<ui.FragmentShader>(
                     initialData: null,
-                    future: ResourceManager.loadShader('shaders/$shader.glsl'),
+                    future: ResourceManager.loadShader('shaders/$shader.frag'),
                     builder: (context, snapshot) =>
                         switch (snapshot.connectionState) {
                       ConnectionState.waiting ||
