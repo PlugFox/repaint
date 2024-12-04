@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repaint/repaint.dart';
 
@@ -125,5 +125,33 @@ void main() {
         expect(box.attached, isFalse);
       },
     );
+
+    testWidgets('Implicit', (tester) async {
+      await tester.pumpWidget(RePaint.inline(
+        setUp: (box) => Paint()..color = Colors.red,
+        frameRate: 60,
+        update: (box, paint, _) =>
+            paint..color = paint.color == Colors.red ? Colors.blue : Colors.red,
+        render: (box, paint, canvas) =>
+            canvas.drawRect(Offset.zero & box.size, paint),
+        tearDown: (paint) {},
+      ));
+      expect(find.byType(RePaint), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 32));
+      expect(find.byType(RePaint), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(find.byType(RePaint), findsNothing);
+    });
+
+    testWidgets('Implicit empty', (tester) async {
+      await tester.pumpWidget(RePaint.inline(
+        render: (_, __, ___) {},
+      ));
+      expect(find.byType(RePaint), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 32));
+      expect(find.byType(RePaint), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(find.byType(RePaint), findsNothing);
+    });
   });
 }
