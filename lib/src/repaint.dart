@@ -196,6 +196,7 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
         _lastFrameTime = elapsed;
         return;
       case int fr when fr > 0:
+
         // Show the next frame if the time has come.
         // Вычисляем интервал между кадрами
         final frameDuration = Duration(milliseconds: (1000 / fr).round());
@@ -204,6 +205,7 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
           _frameCount = 1;
           break; // Show the first frame.
         }
+
         // Вычисляем текущую секунду
         final currentSecond = elapsed.inSeconds;
         final lastFrameSecond = _lastFrameTime.inSeconds;

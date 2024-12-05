@@ -35,9 +35,8 @@ class _FpsScreenState extends State<FpsScreen> {
                   second = now.second;
                   result = counter;
                   counter = 0;
-                } else {
-                  counter++;
                 }
+                counter++;
                 canvas.drawRect(
                   Offset.zero & box.size,
                   Paint()
