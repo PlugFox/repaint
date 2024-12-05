@@ -25,6 +25,10 @@ class HomeScreen extends StatelessWidget {
               delegate: SliverChildListDelegate(
                 const <Widget>[
                   HomeTile(
+                    title: 'FPS',
+                    page: 'fps',
+                  ),
+                  HomeTile(
                     title: 'Clock',
                     page: 'clock',
                   ),

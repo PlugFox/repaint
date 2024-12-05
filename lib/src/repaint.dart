@@ -17,7 +17,8 @@ class RePaint extends LeafRenderObjectWidget {
 
   /// Create a new [RePaint] widget with an inline controller.
   /// The [T] is the custom state type.
-  /// The [frameRate] is used to limit the frame rate.
+  /// The [frameRate] is used to limit the frame rate, (limitter and throttler).
+  /// After the [frameRate] is set, the real frame rate will be lower.
   /// The [setUp] is called when the controller is attached to the render box.
   /// The [update] is called periodically by the loop.
   /// The [render] is called to render the scene after the update.
@@ -177,28 +178,62 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   }
 
   /// Total amount of time passed since the game loop was started.
-  Duration _previous = Duration.zero;
+  Duration _lastFrameTime = Duration.zero;
+  int _frameCount = 0;
 
   /// This method is periodically invoked by the [_ticker].
   void _onTick(Duration elapsed) {
     if (!attached) return;
-    final delta =
-        (elapsed - _previous).inMicroseconds / Duration.microsecondsPerSecond;
+    final delta = elapsed - _lastFrameTime;
+    final deltaMs = delta.inMicroseconds / Duration.microsecondsPerMillisecond;
     switch (_painter.frameRate) {
       case null:
         // No frame rate limit.
+        _lastFrameTime = elapsed;
         break;
       case <= 0:
         // Skip updating and rendering the game scene.
-        _previous = elapsed;
+        _lastFrameTime = elapsed;
         return;
-      case int fr when fr > 0 && fr > delta * 1000:
+      case int fr when fr > 0:
+        // Show the next frame if the time has come.
+        // Вычисляем интервал между кадрами
+        final frameDuration = Duration(milliseconds: (1000 / fr).round());
+        if (_lastFrameTime == Duration.zero) {
+          _lastFrameTime = elapsed;
+          _frameCount = 1;
+          break; // Show the first frame.
+        }
+        // Вычисляем текущую секунду
+        final currentSecond = elapsed.inSeconds;
+        final lastFrameSecond = _lastFrameTime.inSeconds;
+
+        // Если мы перешли в новую секунду
+        if (currentSecond > lastFrameSecond) {
+          // Сбрасываем счетчик кадров
+          _frameCount = 0;
+        }
+
+        // Проверяем, прошло ли достаточно времени с последнего кадра
+        final timeSinceLastFrame = elapsed - _lastFrameTime;
+
+        // Вычисляем теоретически допустимое количество кадров в текущей секунде
+        final expectedFramesThisSecond = (currentSecond + 1) * fr;
+
+        // Если текущее количество кадров меньше ожидаемого
+        // И прошло достаточно времени с последнего кадра
+        if (_frameCount < expectedFramesThisSecond / (currentSecond + 1) &&
+            timeSinceLastFrame >= frameDuration) {
+          _lastFrameTime = elapsed;
+          _frameCount++;
+          break; // Show the next frame.
+        }
+
         // Limit frame rate
         return;
     }
-    _previous = elapsed;
     // Update game scene and prepare for rendering.
-    _painter.update(this, elapsed, delta);
+    _painter.update(this, elapsed, deltaMs);
     markNeedsPaint(); // Mark this game scene as dirty and schedule a repaint.
   }
 
