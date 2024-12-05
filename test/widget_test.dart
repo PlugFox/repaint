@@ -67,7 +67,7 @@ void main() {
                   'painter',
                   allOf(
                     isNotNull,
-                    isA<IRePainter>(),
+                    isA<RePainter>(),
                     isA<RePainterBase>(),
                     isA<RePainterFake>(),
                     same(painter),

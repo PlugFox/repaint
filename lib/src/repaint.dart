@@ -46,7 +46,7 @@ class RePaint extends LeafRenderObjectWidget {
       );
 
   /// The painter controller.
-  final IRePainter painter;
+  final RePainter painter;
 
   @override
   RePaintElement createElement() => RePaintElement(this);
@@ -106,14 +106,14 @@ class RePaintElement extends LeafRenderObjectElement {
 class RePaintBox extends RenderBox with WidgetsBindingObserver {
   /// {@macro repaint_render_box}
   RePaintBox({
-    required IRePainter painter,
+    required RePainter painter,
     required BuildContext context,
   })  : _painter = painter,
         _context = context;
 
   /// Current controller.
-  IRePainter get painter => _painter;
-  IRePainter _painter;
+  RePainter get painter => _painter;
+  RePainter _painter;
 
   /// Current build context.
   BuildContext get context => _context;
