@@ -44,7 +44,7 @@ class FragmentShadersScreen extends StatelessWidget {
             ),
             ShaderContainer(
               shader: 'simple',
-              frameRate: 24,
+              frameRate: 0,
               render: (canvas, size, _, shader, paint) => canvas.drawRect(
                 Offset.zero & size,
                 paint,
@@ -52,7 +52,6 @@ class FragmentShadersScreen extends StatelessWidget {
             ),
             ShaderContainer(
               shader: 'uniforms',
-              frameRate: 60,
               render: (canvas, size, mouse, shader, paint) {
                 final now = DateTime.now().millisecondsSinceEpoch / 10000 % 10;
                 // clamp(abs(0.5f + 0.5f * sin(time * PI / 4.0f)), 0.0f, 1.0f)
@@ -63,6 +62,20 @@ class FragmentShadersScreen extends StatelessWidget {
                   ..setFloat(2, mouse.dx)
                   ..setFloat(3, mouse.dy)
                   ..setFloat(4, now);
+                canvas.drawRect(
+                  Offset.zero & size,
+                  paint,
+                );
+              },
+            ),
+            ShaderContainer(
+              shader: 'gradient',
+              render: (canvas, size, mouse, shader, paint) {
+                final now = DateTime.now().millisecondsSinceEpoch / 10000 % 10;
+                shader
+                  ..setFloat(0, size.width)
+                  ..setFloat(1, size.height)
+                  ..setFloat(2, now);
                 canvas.drawRect(
                   Offset.zero & size,
                   paint,
