@@ -4,7 +4,7 @@
 precision mediump float;
 #endif
 
-#include <flutter/runtime_effect.glsl>
+//#include <flutter/runtime_effect.glsl>
 
 #define PI 3.1415926538
 
@@ -29,11 +29,11 @@ float colorCos(float time) {
 void main() {
     // gl_FragCoord.xy - координаты текущего пикселя в пикселях
     // Отсчет начинается в левом нижнем углу
-    //vec2 uv = gl_FragCoord.xy / iResolution; // normalized coordinates
+    vec2 pos = gl_FragCoord.xy; // current pixel coordinates
 
     // Flutter меряет координаты в пикселях, а не в диапазоне от 0.0 до 1.0
     // Отсчет начинается в левом верхнем углу
-    vec2 pos = FlutterFragCoord().xy; // current pixel coordinates
+    //vec2 pos = FlutterFragCoord().xy; // current pixel coordinates
 
     // Нормализуем координаты в диапазон от 0.0 до 1.0
     vec2 uv = pos / iResolution; // normalized coordinates
@@ -71,7 +71,7 @@ void main() {
         if(mouse.x < 0.5f && mouse.y > 0.5f) {
             float dst = distance(mouse.xy, vec2(0.25f, 0.75f));
             // Чем ближе мышь к центру, тем светлее цвет
-            fragColor = vec4(1 - (dst * 4), 1 - (dst * 4), 1 - (dst * 4), 1.0f);
+            fragColor = vec4(1.0f - (dst * 4.0f), 1.0f - (dst * 4.0f), 1.0f - (dst * 4.0f), 1.0f);
         } else {
             // Если мышь не в нижнем левом углу - черный цвет
             fragColor = vec4(0, 0, 0, 1.0f);
@@ -79,6 +79,6 @@ void main() {
     } else if(uv.x > 0.5f && uv.y > 0.5f) {
         // Нижний правый угол
         // Заливаем цветом зависимым от координаты и времени
-        fragColor = vec4(uv.x * 4 * r, uv.y * 4 * g, b, 1.0f);
+        fragColor = vec4(uv.x * 4.0f * r, uv.y * 4.0f * g, b, 1.0f);
     }
 }
