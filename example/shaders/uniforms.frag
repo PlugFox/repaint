@@ -79,6 +79,6 @@ void main() {
     } else if(uv.x > 0.5f && uv.y > 0.5f) {
         // Нижний правый угол
         // Заливаем цветом зависимым от координаты и времени
-        fragColor = vec4(uv.x * 4.0f * r, uv.y * 4.0f * g, b, 1.0f);
+        fragColor = vec4(uv.x * r, uv.y * g, b, 1.0f);
     }
 }

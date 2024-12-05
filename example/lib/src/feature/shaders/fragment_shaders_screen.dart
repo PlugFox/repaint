@@ -44,6 +44,7 @@ class FragmentShadersScreen extends StatelessWidget {
             ),
             ShaderContainer(
               shader: 'simple',
+              frameRate: 24,
               render: (canvas, size, _, shader, paint) => canvas.drawRect(
                 Offset.zero & size,
                 paint,
@@ -51,7 +52,7 @@ class FragmentShadersScreen extends StatelessWidget {
             ),
             ShaderContainer(
               shader: 'uniforms',
-              frameRate: null,
+              frameRate: 60,
               render: (canvas, size, mouse, shader, paint) {
                 final now = DateTime.now().millisecondsSinceEpoch / 10000 % 10;
                 // clamp(abs(0.5f + 0.5f * sin(time * PI / 4.0f)), 0.0f, 1.0f)

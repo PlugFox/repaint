@@ -15,7 +15,6 @@ void main() {
       expect(interpolate(0, 1, 0.5), 0.5);
       expect(interpolate(0, 1, 0.25), 0.25);
       expect(interpolate(0, 1, 0.75), 0.75);
-      print(interpolate(0, 4, 0.5));
     });
 
     test('clamp', () {
@@ -28,7 +27,7 @@ void main() {
       expect(clamp(0.75, 0, 1), 0.75);
     });
 
-    test('Time sinus', () {
+    /* test('Time sinus', () {
       double evalColor(
         double time, {
         double scale = 4,
@@ -44,6 +43,6 @@ void main() {
           .map(evalColor)
           .map((e) => e.toStringAsFixed(2))
           .join('\n')); */
-    });
+    }); */
   });
 }
