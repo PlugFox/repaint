@@ -18,13 +18,15 @@ class RePaint extends LeafRenderObjectWidget {
   /// Create a new [RePaint] widget with an inline controller.
   /// The [T] is the custom state type.
   /// The [frameRate] is used to limit the frame rate, (limitter and throttler).
-  /// After the [frameRate] is set, the real frame rate will be lower.
   /// The [setUp] is called when the controller is attached to the render box.
   /// The [update] is called periodically by the loop.
   /// The [render] is called to render the scene after the update.
   /// The [tearDown] is called to unmount and dispose the controller.
   /// The [key] is used to identify the widget.
   ///
+  /// After the [frameRate] is set, the real frame rate will be lower.
+  /// Before the frame rate, updates are limited by the flutter ticker,
+  /// so the resulting frame rate will be noticeably lower.
   /// {@macro repaint}
   static Widget inline<T>({
     required void Function(RePaintBox box, T state, Canvas canvas) render,
@@ -145,7 +147,7 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
       ..lifecycle(
           WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed);
     WidgetsBinding.instance.addObserver(this);
-    _ticker = Ticker(_onTick)..start();
+    _ticker = Ticker(_onTick, debugLabel: 'RePaintBox')..start();
   }
 
   @override
@@ -179,7 +181,6 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
 
   /// Total amount of time passed since the game loop was started.
   Duration _lastFrameTime = Duration.zero;
-  int _frameCount = 0;
 
   /// This method is periodically invoked by the [_ticker].
   void _onTick(Duration elapsed) {
@@ -196,43 +197,10 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
         _lastFrameTime = elapsed;
         return;
       case int fr when fr > 0:
-
-        // Show the next frame if the time has come.
-        // Вычисляем интервал между кадрами
-        final frameDuration = Duration(milliseconds: (1000 / fr).round());
-        if (_lastFrameTime == Duration.zero) {
-          _lastFrameTime = elapsed;
-          _frameCount = 1;
-          break; // Show the first frame.
-        }
-
-        // Вычисляем текущую секунду
-        final currentSecond = elapsed.inSeconds;
-        final lastFrameSecond = _lastFrameTime.inSeconds;
-
-        // Если мы перешли в новую секунду
-        if (currentSecond > lastFrameSecond) {
-          // Сбрасываем счетчик кадров
-          _frameCount = 0;
-        }
-
-        // Проверяем, прошло ли достаточно времени с последнего кадра
-        final timeSinceLastFrame = elapsed - _lastFrameTime;
-
-        // Вычисляем теоретически допустимое количество кадров в текущей секунде
-        final expectedFramesThisSecond = (currentSecond + 1) * fr;
-
-        // Если текущее количество кадров меньше ожидаемого
-        // И прошло достаточно времени с последнего кадра
-        if (_frameCount < expectedFramesThisSecond / (currentSecond + 1) &&
-            timeSinceLastFrame >= frameDuration) {
-          _lastFrameTime = elapsed;
-          _frameCount++;
-          break; // Show the next frame.
-        }
-
-        // Limit frame rate
-        return;
+        final targetFrameTime = 1000 / fr;
+        if (deltaMs < targetFrameTime) return; // Limit frame rate
+        _lastFrameTime = elapsed;
+        break;
     }
     // Update game scene and prepare for rendering.
     _painter.update(this, elapsed, deltaMs);
