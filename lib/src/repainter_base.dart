@@ -8,7 +8,7 @@ import 'repainter_interface.dart';
 /// {@template repainter_base}
 /// The base class for a custom scene painter.
 /// {@endtemplate}
-abstract base class RePainterBase implements IRePainter {
+abstract base class RePainterBase implements RePainter {
   /// {@macro repainter_base}
   const RePainterBase();
 

@@ -17,13 +17,16 @@ class RePaint extends LeafRenderObjectWidget {
 
   /// Create a new [RePaint] widget with an inline controller.
   /// The [T] is the custom state type.
-  /// The [frameRate] is used to limit the frame rate.
+  /// The [frameRate] is used to limit the frame rate, (limitter and throttler).
   /// The [setUp] is called when the controller is attached to the render box.
   /// The [update] is called periodically by the loop.
   /// The [render] is called to render the scene after the update.
   /// The [tearDown] is called to unmount and dispose the controller.
   /// The [key] is used to identify the widget.
   ///
+  /// After the [frameRate] is set, the real frame rate will be lower.
+  /// Before the frame rate, updates are limited by the flutter ticker,
+  /// so the resulting frame rate will be noticeably lower.
   /// {@macro repaint}
   static Widget inline<T>({
     required void Function(RePaintBox box, T state, Canvas canvas) render,
@@ -43,7 +46,7 @@ class RePaint extends LeafRenderObjectWidget {
       );
 
   /// The painter controller.
-  final IRePainter painter;
+  final RePainter painter;
 
   @override
   RePaintElement createElement() => RePaintElement(this);
@@ -103,14 +106,14 @@ class RePaintElement extends LeafRenderObjectElement {
 class RePaintBox extends RenderBox with WidgetsBindingObserver {
   /// {@macro repaint_render_box}
   RePaintBox({
-    required IRePainter painter,
+    required RePainter painter,
     required BuildContext context,
   })  : _painter = painter,
         _context = context;
 
   /// Current controller.
-  IRePainter get painter => _painter;
-  IRePainter _painter;
+  RePainter get painter => _painter;
+  RePainter _painter;
 
   /// Current build context.
   BuildContext get context => _context;
@@ -144,7 +147,7 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
       ..lifecycle(
           WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed);
     WidgetsBinding.instance.addObserver(this);
-    _ticker = Ticker(_onTick)..start();
+    _ticker = Ticker(_onTick, debugLabel: 'RePaintBox')..start();
   }
 
   @override
@@ -177,28 +180,30 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   }
 
   /// Total amount of time passed since the game loop was started.
-  Duration _previous = Duration.zero;
+  Duration _lastFrameTime = Duration.zero;
 
   /// This method is periodically invoked by the [_ticker].
   void _onTick(Duration elapsed) {
     if (!attached) return;
-    final delta =
-        (elapsed - _previous).inMicroseconds / Duration.microsecondsPerSecond;
+    final delta = elapsed - _lastFrameTime;
+    final deltaMs = delta.inMicroseconds / Duration.microsecondsPerMillisecond;
     switch (_painter.frameRate) {
       case null:
         // No frame rate limit.
+        _lastFrameTime = elapsed;
         break;
       case <= 0:
         // Skip updating and rendering the game scene.
-        _previous = elapsed;
+        _lastFrameTime = elapsed;
         return;
-      case int fr when fr > 0 && fr > delta * 1000:
-        // Limit frame rate
-        return;
+      case int fr when fr > 0:
+        final targetFrameTime = 1000 / fr;
+        if (deltaMs < targetFrameTime) return; // Limit frame rate
+        _lastFrameTime = elapsed;
+        break;
     }
-    _previous = elapsed;
     // Update game scene and prepare for rendering.
-    _painter.update(this, elapsed, delta);
+    _painter.update(this, elapsed, deltaMs);
     markNeedsPaint(); // Mark this game scene as dirty and schedule a repaint.
   }
 

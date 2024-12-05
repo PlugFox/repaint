@@ -12,6 +12,18 @@
         "--dart-define-from-file=config/development.json",
       ],
       "env": {}
+    },
+    {
+      "name": "Example (Release)",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "request": "launch",
+      "flutterMode": "release",
+      "cwd": "${workspaceFolder}/example",
+      "args": [
+        "--dart-define-from-file=config/development.json",
+      ],
+      "env": {}
     }
   ]
 }
