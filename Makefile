@@ -46,7 +46,7 @@ deploy-check: publish-check
 
 .PHONY: publish
 publish: ## Publish the package
-	@yes | flutter pub publish
+	@flutter pub publish
 
 .PHONY: deploy
 deploy: publish
