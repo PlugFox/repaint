@@ -178,11 +178,15 @@ final class FrameRateGraph extends RePainterBase {
 
   final Paint _linePaint = Paint()
     ..color = Colors.white
+    ..strokeWidth = 2
+    ..strokeCap = StrokeCap.square
     ..style = PaintingStyle.stroke
     ..isAntiAlias = false;
 
   final Paint _fgPaint = Paint()
     ..color = Colors.white38
+    ..strokeWidth = 1
+    ..strokeCap = StrokeCap.square
     ..style = PaintingStyle.stroke
     ..isAntiAlias = false;
 
@@ -241,19 +245,10 @@ final class FrameRateGraph extends RePainterBase {
     {
       // Draw chart
       final size = Size(box.size.width - 16, box.size.height - 16);
-
-      // Draw chart lines
-      canvas
-        ..drawLine(
-          const Offset(0, 0),
-          Offset(0, size.height),
-          _linePaint,
-        )
-        ..drawLine(
-          Offset(0, size.height),
-          Offset(size.width, size.height),
-          _linePaint,
-        );
+      canvas.clipRect(
+        Rect.fromLTRB(-2, -2, size.width + 2, size.height + 2),
+        doAntiAlias: false,
+      );
 
       // Draw last 60 updates
       final updates = _updates.reversed.take(60).toList(growable: false);
@@ -304,11 +299,16 @@ final class FrameRateGraph extends RePainterBase {
             Offset(4, y + 1),
           );
       }
+      canvas.drawLine(
+        Offset(size.width + 1, 0),
+        Offset(size.width + 1, size.height),
+        _fgPaint,
+      );
 
       // Draw legend
       _text
         ..text = TextSpan(
-          text: 'Updates: ${updates.length > 1 ? updates[1] : '_'}',
+          text: 'Updates: ${updates.length > 1 ? updates[1] : '_'}/s',
           style: const TextStyle(
             height: 1,
             color: Colors.blue,
@@ -317,13 +317,13 @@ final class FrameRateGraph extends RePainterBase {
             overflow: TextOverflow.clip,
           ),
         )
-        ..layout(maxWidth: 72)
+        ..layout(maxWidth: 96)
         ..paint(
           canvas,
           const Offset(32, 4),
         )
         ..text = TextSpan(
-          text: 'Renders: ${renders.length > 1 ? renders[1] : '_'}',
+          text: 'Renders: ${renders.length > 1 ? renders[1] : '_'}/s',
           style: const TextStyle(
             height: 1,
             color: Colors.red,
@@ -332,10 +332,23 @@ final class FrameRateGraph extends RePainterBase {
             overflow: TextOverflow.clip,
           ),
         )
-        ..layout(maxWidth: 72)
+        ..layout(maxWidth: 96)
         ..paint(
           canvas,
-          const Offset(100, 4),
+          const Offset(128, 4),
+        );
+
+      // Draw chart lines
+      canvas
+        ..drawLine(
+          const Offset(0, 0),
+          Offset(0, size.height),
+          _linePaint,
+        )
+        ..drawLine(
+          Offset(0, size.height),
+          Offset(size.width + 1, size.height),
+          _linePaint,
         );
     }
 
