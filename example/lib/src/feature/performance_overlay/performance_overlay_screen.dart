@@ -113,6 +113,7 @@ class PerformanceOverlayPainter extends RePainterBase {
           fontSize: 12,
           height: 1.0,
           fontWeight: FontWeight.w600,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
       textDirection: TextDirection.ltr,
