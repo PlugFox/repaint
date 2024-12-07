@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:repaint/repaint.dart';
@@ -20,7 +21,7 @@ class SunflowerScreen extends StatefulWidget {
 
 class _SunflowerScreenState extends State<SunflowerScreen> {
   final ValueNotifier<int> _progress = ValueNotifier<int>(50);
-  final SunflowerPainter _painter = SunflowerPainter();
+  final SunflowerPainter _painter = SunflowerPainter(max: 20000);
 
   @override
   void initState() {
@@ -29,6 +30,12 @@ class _SunflowerScreenState extends State<SunflowerScreen> {
   }
 
   void _updateSeeds() => _painter.setProgress(_progress.value);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _painter.setTheme(Theme.of(context));
+  }
 
   @override
   void dispose() {
@@ -93,7 +100,7 @@ class _SunflowerScreenState extends State<SunflowerScreen> {
                                       val.round().clamp(0, 100),
                                 ),
                                 Text(
-                                  '$value%',
+                                  '$value% (${_painter._seeds} seeds)',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.center,
@@ -157,19 +164,79 @@ class SunflowerPainter extends PerformanceOverlayPainter {
   final int _maxSeeds;
   int _seeds = 0;
 
+  ThemeData _theme = ThemeData.light();
+
+  Vertices _vertices = Vertices(
+    VertexMode.triangles,
+    <Offset>[],
+    colors: <Color>[],
+  );
+
   void setProgress(int progress) => _seeds = (_maxSeeds * progress) ~/ 100;
 
+  void setTheme(ThemeData theme) => _theme = theme;
+
+  /// Генерирует вершины равнобедренного треугольника, вписанного в окружность
+  /// с радиусом [radius] и центром в точке [center].
+  static List<Offset> generateIsoscelesTriangle(Offset center,
+      [double radius = 6]) {
+    // Угол между вершинами треугольника в радианах
+    const angleStep = 2 * math.pi / 3; // 120 градусов
+    // Начальный угол
+    const startAngle = -math.pi / 2; // Вершина треугольника направлена вверх
+    // Вычисляем три вершины треугольника
+    return List<Offset>.generate(
+      3,
+      (index) {
+        final angle = startAngle + angleStep * index;
+        return Offset(
+          center.dx + radius * math.cos(angle),
+          center.dy + radius * math.sin(angle),
+        );
+      },
+      growable: false,
+    );
+  }
+
   @override
-  void internalUpdate(RePaintBox box, Duration elapsed, double delta) {}
+  void internalUpdate(RePaintBox box, Duration elapsed, double delta) {
+    final size = box.size;
+    final radius = size.shortestSide / 2;
+    final center = size.center(Offset.zero);
+    /* final outerDotRadius = (size.shortestSide / _maxSeeds) * 10;
+    final innerDotRadius = (size.shortestSide / _maxSeeds) * 10; */
+    _vertices = Vertices(
+      VertexMode.triangles,
+      <Offset>[
+        for (var i = 0; i < _seeds; i++)
+          ...generateIsoscelesTriangle(
+            center + _evalOuter(radius, _maxSeeds, i),
+            7,
+          ),
+        for (var i = _seeds; i < _maxSeeds; i++)
+          ...generateIsoscelesTriangle(
+            center + _evalInner(radius, _maxSeeds, i),
+            10,
+          ),
+      ],
+      colors: <Color>[
+        for (var i = 0; i < _seeds; i++) ...const [
+          Colors.deepPurple,
+          Colors.blue,
+          Colors.lightBlue,
+        ],
+        for (var i = _seeds; i < _maxSeeds; i++) ...const [
+          Colors.deepOrange,
+          Colors.orange,
+          Colors.amber,
+        ],
+      ],
+    );
+  }
 
   @override
   void internalPaint(RePaintBox box, PaintingContext context) {
     final canvas = context.canvas;
-    final size = box.size;
-    final radius = size.shortestSide / 2;
-    final center = size.center(Offset.zero);
-    final outerDotRadius = (size.shortestSide / _maxSeeds) * 10;
-    final innerDotRadius = (size.shortestSide / _maxSeeds) * 10;
     var paint = Paint()
       ..style = PaintingStyle.fill
       ..strokeWidth = 4
@@ -182,39 +249,27 @@ class SunflowerPainter extends PerformanceOverlayPainter {
       paint..color = Colors.lightBlue,
     ); */
 
-    var j = 0;
-    paint = Paint()
-      ..color = Colors.deepPurple
-      ..style = PaintingStyle.fill
-      ..strokeWidth = 4
-      ..isAntiAlias = false
-      ..blendMode = BlendMode.src
-      ..filterQuality = FilterQuality.none;
+    /* paint.color = Colors.deepPurple;
     for (var i = 0; i < _seeds; i++) {
       canvas.drawCircle(
         center + _evalOuter(radius, _maxSeeds, i),
         outerDotRadius,
         paint,
       );
-      j++;
     }
-    paint = Paint()
-      ..color = Colors.deepOrange
-      ..style = PaintingStyle.fill
-      ..strokeWidth = 4
-      ..isAntiAlias = false
-      ..blendMode = BlendMode.src
-      ..filterQuality = FilterQuality.none;
+    paint.color = Colors.deepOrange;
     for (var i = _seeds; i < _maxSeeds; i++) {
       canvas.drawCircle(
         center + _evalInner(radius, _maxSeeds, i),
         innerDotRadius,
         paint,
       );
-      j++;
-    }
-    if (j != _maxSeeds) {
-      throw StateError('Invalid seed count: $j');
-    }
+    } */
+
+    canvas.drawVertices(
+      _vertices,
+      BlendMode.src,
+      paint,
+    );
   }
 }
