@@ -2,10 +2,12 @@
 
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:repaint/repaint.dart';
+import 'package:repaintexample/src/common/widget/app.dart';
 
 /// {@template performance_overlay_screen}
 /// PerformanceOverlayScreen widget.
@@ -26,14 +28,23 @@ class _PerformanceOverlayScreenState extends State<PerformanceOverlayScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: RePaint(
-          painter: _repainter,
+        appBar: AppBar(
+          title: const Text('Performance Overlay'),
+          leading: BackButton(
+            onPressed: () => App.pop(context),
+          ),
+        ),
+        body: SafeArea(
+          child: RePaint(
+            painter: _repainter,
+          ),
         ),
       );
 }
 
 class PerformanceOverlayPainter extends RePainterBase {
   PerformanceOverlayPainter();
+
   int _optionsMask = 0;
 
   /// Metrics.
@@ -47,13 +58,14 @@ class PerformanceOverlayPainter extends RePainterBase {
   final Stopwatch _stopwatch = Stopwatch();
 
   /// Set the options mask.
-  void setOptionsMask(Set<PerformanceOverlayOption> optionsMask) =>
+  void _setOptionsMask(Set<PerformanceOverlayOption> optionsMask) =>
       _optionsMask =
           optionsMask.fold(0, (mask, option) => mask | (1 << option.index));
 
   @override
+  @mustCallSuper
   void mount(RePaintBox box, PipelineOwner owner) {
-    setOptionsMask(PerformanceOverlayOption.values.toSet());
+    _setOptionsMask(PerformanceOverlayOption.values.toSet());
     _clearMetrics();
     _stopwatch
       ..reset()
@@ -61,6 +73,7 @@ class PerformanceOverlayPainter extends RePainterBase {
   }
 
   @override
+  @mustCallSuper
   void unmount() {
     _clearMetrics();
     _stopwatch.stop();
@@ -96,9 +109,14 @@ class PerformanceOverlayPainter extends RePainterBase {
     textPainter.paint(context.canvas, rect.topLeft);
   }
 
+  @mustCallSuper
+  void internalUpdate(RePaintBox box, Duration elapsed, double delta) {}
+
   @override
+  @nonVirtual
   void update(RePaintBox box, Duration elapsed, double delta) {
     final begin = _stopwatch.elapsed;
+    internalUpdate(box, elapsed, delta);
     if (elapsed.inSeconds case int seconds when seconds != _metrics[0]) {
       final buffer = StringBuffer()
         /* ..writeln('Current second: ${_metrics[0]}') */
@@ -114,21 +132,18 @@ class PerformanceOverlayPainter extends RePainterBase {
     _increment(2, (_stopwatch.elapsed - begin).inMicroseconds);
   }
 
+  @mustCallSuper
+  void internalPaint(RePaintBox box, PaintingContext context) {}
+
   @override
+  @nonVirtual
   void paint(RePaintBox box, PaintingContext context) {
     const maxWidth = 480.0;
     final canvas = context.canvas;
     final paintBounds = box.paintBounds;
     var begin = _stopwatch.elapsed;
-    canvas
-      ..drawRect(
-        paintBounds,
-        Paint()
-          ..color = Colors.lightBlue.withOpacity(0.5)
-          ..style = PaintingStyle.fill
-          ..strokeWidth = 2,
-      )
-      ..save() /* ..transform(Matrix4.identity().scaled(.5, .5).storage) */;
+    internalPaint(box, context);
+    canvas.save();
     final cardPaint = Paint()
       ..color = Colors.black26
       ..style = PaintingStyle.fill
