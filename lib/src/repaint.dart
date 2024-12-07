@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -151,6 +152,47 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
           WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed);
     WidgetsBinding.instance.addObserver(this);
     _ticker = Ticker(_onTick, debugLabel: 'RePaintBox')..start();
+  }
+
+  @override
+  bool hitTestSelf(Offset position) => true;
+
+  @override
+  bool hitTestChildren(
+    BoxHitTestResult result, {
+    required Offset position,
+  }) =>
+      false;
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    var hitTarget = false;
+    if (size.contains(position)) {
+      hitTarget = hitTestSelf(position);
+      result.add(BoxHitTestEntry(this, position));
+    }
+    return hitTarget;
+  }
+
+  @override
+  void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
+    painter;
+    switch (event) {
+      case PointerDownEvent _:
+      case PointerMoveEvent _:
+      case PointerUpEvent _:
+      case PointerCancelEvent _:
+      case PointerPanZoomStartEvent _:
+      case PointerPanZoomUpdateEvent _:
+      case PointerPanZoomEndEvent _:
+      case PointerScrollEvent _:
+      case PointerSignalEvent _:
+        break;
+      case PointerHoverEvent _:
+        break;
+      default:
+        break;
+    }
   }
 
   @override

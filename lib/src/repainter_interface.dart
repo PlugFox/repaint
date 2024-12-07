@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -46,6 +47,29 @@ abstract interface class RePainter {
   /// - Use the [box.context] to get the build context.
   /// - Use the [context.canvas] to draw the scene.
   void paint(covariant RePaintBox box, PaintingContext context);
+
+  /// Pointer event callback.
+  /// Called when a pointer event occurs.
+  /// For example, when the user taps the screen.
+  /// Events are not propagated to the parent widgets.
+  ///
+  /// Possible events:
+  /// - [PointerDownEvent] - The pointer has made contact with the device.
+  /// - [PointerMoveEvent] - The pointer has moved with respect to the device
+  ///   while the pointer is in contact with the device.
+  /// - [PointerUpEvent] - The pointer has stopped making contact
+  ///   with the device.
+  /// - [PointerCancelEvent] - The input from the pointer is no longer directed
+  ///   towards this receiver.
+  /// - [PointerPanZoomStartEvent] - A pan/zoom has begun on this pointer.
+  /// - [PointerPanZoomUpdateEvent] - The active pan/zoom on this pointer has updated.
+  /// - [PointerPanZoomEndEvent] - The pan/zoom on this pointer has ended.
+  /// - [PointerScrollEvent] - The pointer issued a scroll event.
+  /// - [PointerSignalEvent] - An event that corresponds to a discrete
+  ///   pointer signal.
+  /// - [PointerHoverEvent] - The pointer has moved with respect to the device
+  ///   while the pointer is not in contact with the device.
+  void onPointerEvent(PointerEvent event);
 
   /// Unmount and dispose the controller.
   /// Called when the controller is detached from the render box.

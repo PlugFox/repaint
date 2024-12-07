@@ -31,6 +31,11 @@ abstract /* base */ class RePainterBase implements RePainter {
   }
 
   @override
+  void onPointerEvent(PointerEvent event) {
+    // implement onPointerEvent
+  }
+
+  @override
   void unmount() {
     // implement unmount
   }
