@@ -45,7 +45,7 @@ class RePaintInline<T extends Object?> extends StatefulWidget {
 }
 
 class _RePaintInlineState<T> extends State<RePaintInline<T>> {
-  final _RePainterInline<T> painter = _RePainterInline<T>();
+  final _InlinePainter<T> painter = _InlinePainter<T>();
 
   @override
   void initState() {
@@ -63,8 +63,10 @@ class _RePaintInlineState<T> extends State<RePaintInline<T>> {
   Widget build(BuildContext context) => RePaint(painter: painter);
 }
 
-final class _RePainterInline<T> extends RePainterBase {
-  _RePainterInline();
+/// Internal controller for inline state.
+final class _InlinePainter<T> extends RePainterBase {
+  /// Internal controller for inline state.
+  _InlinePainter();
 
   RePaintInline<T>? widget;
 
@@ -74,7 +76,7 @@ final class _RePainterInline<T> extends RePainterBase {
   int? get frameRate => widget?.frameRate;
 
   @override
-  void mount(PipelineOwner owner, RePaintBox box) {
+  void mount(RePaintBox box, PipelineOwner owner) {
     state = widget?.setUp?.call(box);
   }
 
@@ -84,8 +86,8 @@ final class _RePainterInline<T> extends RePainterBase {
   }
 
   @override
-  void render(RePaintBox box, Canvas canvas) {
-    widget?.render(box, state as T, canvas);
+  void paint(RePaintBox box, PaintingContext context) {
+    widget?.render(box, state as T, context.canvas);
   }
 
   @override

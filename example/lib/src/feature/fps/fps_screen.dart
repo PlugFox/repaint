@@ -231,8 +231,10 @@ final class FrameRateGraph extends RePainterBase {
   }
 
   @override
-  void render(RePaintBox box, Canvas canvas) {
+  void paint(covariant RePaintBox box, PaintingContext context) {
     _addRender();
+
+    final canvas = context.canvas;
 
     // Draw background
     canvas.drawRect(

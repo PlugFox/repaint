@@ -24,7 +24,8 @@ abstract interface class RePainter {
 
   /// Mount the controller.
   /// Called when the controller is attached to the render box.
-  void mount(PipelineOwner owner, RePaintBox box);
+  @protected
+  void mount(covariant RePaintBox box, PipelineOwner owner);
 
   /// Lifecycle state change callback.
   /// Called when the app lifecycle state changes.
@@ -32,13 +33,24 @@ abstract interface class RePainter {
 
   /// Loop tick update.
   /// Called periodically by the loop.
-  void update(RePaintBox box, Duration elapsed, double delta);
+  void update(covariant RePaintBox box, Duration elapsed, double delta);
 
-  /// Render current scene.
-  /// Render the updated objects after the [update] method.
-  void render(RePaintBox box, Canvas canvas);
+  /// Paint the scene.
+  ///
+  /// Paint the updated objects after the [update] method.
+  ///
+  /// [box] - the current render box of the widget.
+  /// [context] - the painting context during the paint phase.
+  ///
+  /// Hints:
+  /// - Use the [box.size] to get the render box size.
+  /// - Use the [box.context] to get the build context.
+  /// - Use the [context.canvas] to draw the scene.
+  @protected
+  void paint(covariant RePaintBox box, PaintingContext context);
 
   /// Unmount and dispose the controller.
   /// Called when the controller is detached from the render box.
+  @protected
   void unmount();
 }

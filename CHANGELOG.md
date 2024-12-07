@@ -1,3 +1,7 @@
+## 0.0.4
+
+- **CHANGED**: Change interface of `RePainter` delegate.
+
 ## 0.0.3
 
 - Updated Frame Limiter logic

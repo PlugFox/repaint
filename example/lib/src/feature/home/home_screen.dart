@@ -36,6 +36,10 @@ class HomeScreen extends StatelessWidget {
                     title: 'Fragment Shaders',
                     page: 'fragment-shaders',
                   ),
+                  HomeTile(
+                    title: 'Performance Overlay',
+                    page: 'performance-overlay',
+                  ),
                 ],
               ),
             ),

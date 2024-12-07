@@ -21,13 +21,8 @@ abstract base class RePainterBase implements RePainter {
   }
 
   @override
-  void mount(PipelineOwner owner, RePaintBox box) {
+  void mount(RePaintBox box, PipelineOwner owner) {
     // implement mount
-  }
-
-  @override
-  void render(RePaintBox box, Canvas canvas) {
-    // implement render
   }
 
   @override
