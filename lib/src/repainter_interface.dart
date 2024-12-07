@@ -24,7 +24,6 @@ abstract interface class RePainter {
 
   /// Mount the controller.
   /// Called when the controller is attached to the render box.
-  @protected
   void mount(covariant RePaintBox box, PipelineOwner owner);
 
   /// Lifecycle state change callback.
@@ -46,11 +45,9 @@ abstract interface class RePainter {
   /// - Use the [box.size] to get the render box size.
   /// - Use the [box.context] to get the build context.
   /// - Use the [context.canvas] to draw the scene.
-  @protected
   void paint(covariant RePaintBox box, PaintingContext context);
 
   /// Unmount and dispose the controller.
   /// Called when the controller is detached from the render box.
-  @protected
   void unmount();
 }

@@ -1,7 +1,10 @@
+// ignore_for_file: curly_braces_in_flow_control_structures
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:repaint/repaint.dart';
 
 /// {@template performance_overlay_screen}
@@ -29,10 +32,21 @@ class _PerformanceOverlayScreenState extends State<PerformanceOverlayScreen> {
       );
 }
 
-final class PerformanceOverlayPainter extends RePainterBase {
+class PerformanceOverlayPainter extends RePainterBase {
+  PerformanceOverlayPainter();
   int _optionsMask = 0;
-  final Map<String, String> _metrics = <String, String>{};
 
+  /// Metrics.
+  /// 0 - Current second.
+  /// 1 - FPS (frames per second)
+  /// 2 - Update time (μs)
+  /// 3 - Paint time (μs)
+  /// 4 - Render time (μs)
+  final List<int> _metrics = List<int>.generate(12, (_) => 0, growable: false);
+  String _metricsText = '';
+  final Stopwatch _stopwatch = Stopwatch();
+
+  /// Set the options mask.
   void setOptionsMask(Set<PerformanceOverlayOption> optionsMask) =>
       _optionsMask =
           optionsMask.fold(0, (mask, option) => mask | (1 << option.index));
@@ -40,8 +54,24 @@ final class PerformanceOverlayPainter extends RePainterBase {
   @override
   void mount(RePaintBox box, PipelineOwner owner) {
     setOptionsMask(PerformanceOverlayOption.values.toSet());
-    _metrics.clear();
+    _clearMetrics();
+    _stopwatch
+      ..reset()
+      ..start();
   }
+
+  @override
+  void unmount() {
+    _clearMetrics();
+    _stopwatch.stop();
+    _metricsText = '';
+  }
+
+  void _clearMetrics() {
+    for (var i = 1; i < _metrics.length; i++) _metrics[i] = 0;
+  }
+
+  void _increment(int index, [int value = 1]) => _metrics[index] += value;
 
   void _paintPerformanceOverlayLayer(Rect rect, PaintingContext context) =>
       context.addLayer(PerformanceOverlayLayer(
@@ -50,19 +80,15 @@ final class PerformanceOverlayPainter extends RePainterBase {
       ));
 
   void _paintMetricsLayer(Rect rect, PaintingContext context) {
-    final buffer = StringBuffer();
-    for (final (int _, MapEntry(key: String label, value: String value))
-        in _metrics.entries.indexed) {
-      buffer.writeln('$label: $value');
-    }
-    final text = buffer.toString();
-    if (text.isEmpty) return;
+    if (_metricsText.isEmpty) return;
     final textPainter = TextPainter(
       text: TextSpan(
-        text: text,
+        text: _metricsText,
         style: const TextStyle(
           color: Colors.black,
-          fontSize: 10,
+          fontSize: 12,
+          height: 1.0,
+          fontWeight: FontWeight.w600,
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -72,7 +98,20 @@ final class PerformanceOverlayPainter extends RePainterBase {
 
   @override
   void update(RePaintBox box, Duration elapsed, double delta) {
-    // Update the scene.
+    final begin = _stopwatch.elapsed;
+    if (elapsed.inSeconds case int seconds when seconds != _metrics[0]) {
+      final buffer = StringBuffer()
+        /* ..writeln('Current second: ${_metrics[0]}') */
+        ..writeln(
+            '${_metrics[1]} fps, ${(1000 / _metrics[1]).toStringAsFixed(2)} ms/f')
+        ..writeln('update time: ${(_metrics[2] / 1000).toStringAsFixed(2)} ms')
+        ..writeln('paint time: ${(_metrics[3] / 1000).toStringAsFixed(2)} ms')
+        ..writeln('render time: ${(_metrics[4] / 1000).toStringAsFixed(2)} ms');
+      _metricsText = buffer.toString();
+      _clearMetrics();
+      _metrics[0] = seconds;
+    }
+    _increment(2, (_stopwatch.elapsed - begin).inMicroseconds);
   }
 
   @override
@@ -80,6 +119,7 @@ final class PerformanceOverlayPainter extends RePainterBase {
     const maxWidth = 480.0;
     final canvas = context.canvas;
     final paintBounds = box.paintBounds;
+    var begin = _stopwatch.elapsed;
     canvas
       ..drawRect(
         paintBounds,
@@ -118,8 +158,14 @@ final class PerformanceOverlayPainter extends RePainterBase {
       perfRect.width,
       rect.height - perfRect.height,
     ).deflate(8); // Padding
-    _paintMetricsLayer(metricsRect, context);
-    _paintPerformanceOverlayLayer(perfRect, context);
+    _paintMetricsLayer(metricsRect, context); // Paint metrics
+    _paintPerformanceOverlayLayer(perfRect, context); // Paint performance
     context.canvas.restore();
+    _increment(3, (_stopwatch.elapsed - begin).inMicroseconds);
+    begin = _stopwatch.elapsed;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _increment(1);
+      _increment(4, (_stopwatch.elapsed - begin).inMicroseconds);
+    });
   }
 }
