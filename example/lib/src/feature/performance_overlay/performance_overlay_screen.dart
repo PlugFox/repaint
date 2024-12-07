@@ -26,7 +26,7 @@ class PerformanceOverlayScreen extends StatefulWidget {
 }
 
 class _PerformanceOverlayScreenState extends State<PerformanceOverlayScreen> {
-  final RePainter _repainter = PerformanceOverlayPainter();
+  final RePainter _painter = PerformanceOverlayPainter();
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -38,7 +38,7 @@ class _PerformanceOverlayScreenState extends State<PerformanceOverlayScreen> {
         ),
         body: SafeArea(
           child: RePaint(
-            painter: _repainter,
+            painter: _painter,
           ),
         ),
       );
@@ -141,7 +141,6 @@ class PerformanceOverlayPainter extends RePainterBase {
     textPainter.paint(context.canvas, rect.topLeft);
   }
 
-  @mustCallSuper
   void internalUpdate(RePaintBox box, Duration elapsed, double delta) {}
 
   @override
@@ -175,7 +174,6 @@ class PerformanceOverlayPainter extends RePainterBase {
     _increment(2, (_stopwatch.elapsed - begin).inMicroseconds);
   }
 
-  @mustCallSuper
   void internalPaint(RePaintBox box, PaintingContext context) {}
 
   @override
@@ -188,7 +186,9 @@ class PerformanceOverlayPainter extends RePainterBase {
     internalPaint(box, context);
     if (_showPerformanceOverlay) {
       // Draw information about performance and metrics.
-      canvas.save();
+      canvas
+        ..save()
+        ..clipRect(paintBounds);
       final cardPaint = Paint()
         ..color = Colors.black26
         ..style = PaintingStyle.fill

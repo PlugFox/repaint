@@ -40,6 +40,10 @@ class HomeScreen extends StatelessWidget {
                     title: 'Performance Overlay',
                     page: 'performance-overlay',
                   ),
+                  HomeTile(
+                    title: 'Sunflower',
+                    page: 'sunflower',
+                  ),
                 ],
               ),
             ),
