@@ -56,11 +56,21 @@ class PerformanceOverlayPainter extends RePainterBase {
   final List<int> _metrics = List<int>.generate(12, (_) => 0, growable: false);
   String _metricsText = '';
   final Stopwatch _stopwatch = Stopwatch();
+  bool _showPerformanceOverlay = true;
 
   /// Set the options mask.
   void _setOptionsMask(Set<PerformanceOverlayOption> optionsMask) =>
       _optionsMask =
           optionsMask.fold(0, (mask, option) => mask | (1 << option.index));
+
+  /// Switch performance overlay.
+  @nonVirtual
+  void switchPerformanceOverlay() {
+    _showPerformanceOverlay = !_showPerformanceOverlay;
+    _setOptionsMask(_showPerformanceOverlay
+        ? PerformanceOverlayOption.values.toSet()
+        : const <PerformanceOverlayOption>{});
+  }
 
   @override
   @mustCallSuper
@@ -86,11 +96,12 @@ class PerformanceOverlayPainter extends RePainterBase {
 
   void _increment(int index, [int value = 1]) => _metrics[index] += value;
 
-  void _paintPerformanceOverlayLayer(Rect rect, PaintingContext context) =>
-      context.addLayer(PerformanceOverlayLayer(
-        overlayRect: rect,
-        optionsMask: _optionsMask,
-      ));
+  void _paintPerformanceOverlayLayer(Rect rect, PaintingContext context) {
+    context.addLayer(PerformanceOverlayLayer(
+      overlayRect: rect,
+      optionsMask: _optionsMask,
+    ));
+  }
 
   void _paintMetricsLayer(Rect rect, PaintingContext context) {
     if (_metricsText.isEmpty) return;
@@ -143,39 +154,42 @@ class PerformanceOverlayPainter extends RePainterBase {
     final paintBounds = box.paintBounds;
     var begin = _stopwatch.elapsed;
     internalPaint(box, context);
-    canvas.save();
-    final cardPaint = Paint()
-      ..color = Colors.black26
-      ..style = PaintingStyle.fill
-      ..blendMode = BlendMode.srcOver
-      ..filterQuality = FilterQuality.none
-      ..isAntiAlias = false;
-    var rect = Rect.fromLTWH(
-      8,
-      8,
-      math.min(paintBounds.width - 16, maxWidth),
-      math.min(paintBounds.height - 16, 128 * 3 + 16),
-    );
-    // Draw card for performance & metrics.
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
-      cardPaint,
-    );
-    final perfRect = Rect.fromLTWH(
-      rect.left,
-      rect.top,
-      rect.width,
-      rect.height * 2 / 3 - 8,
-    );
-    final metricsRect = Rect.fromLTWH(
-      perfRect.left,
-      rect.top + perfRect.height,
-      perfRect.width,
-      rect.height - perfRect.height,
-    ).deflate(8); // Padding
-    _paintMetricsLayer(metricsRect, context); // Paint metrics
-    _paintPerformanceOverlayLayer(perfRect, context); // Paint performance
-    context.canvas.restore();
+    if (_showPerformanceOverlay) {
+      // Draw information about performance and metrics.
+      canvas.save();
+      final cardPaint = Paint()
+        ..color = Colors.black26
+        ..style = PaintingStyle.fill
+        ..blendMode = BlendMode.srcOver
+        ..filterQuality = FilterQuality.none
+        ..isAntiAlias = false;
+      var rect = Rect.fromLTWH(
+        8,
+        8,
+        math.min(paintBounds.width - 16, maxWidth),
+        math.min(paintBounds.height - 16, 128 * 3 + 16),
+      );
+      // Draw card for performance & metrics.
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+        cardPaint,
+      );
+      final perfRect = Rect.fromLTWH(
+        rect.left,
+        rect.top,
+        rect.width,
+        rect.height * 2 / 3 - 8,
+      );
+      final metricsRect = Rect.fromLTWH(
+        perfRect.left,
+        rect.top + perfRect.height,
+        perfRect.width,
+        rect.height - perfRect.height,
+      ).deflate(8); // Padding
+      _paintMetricsLayer(metricsRect, context); // Paint metrics
+      _paintPerformanceOverlayLayer(perfRect, context); // Paint performance
+      context.canvas.restore();
+    }
     _increment(3, (_stopwatch.elapsed - begin).inMicroseconds);
     begin = _stopwatch.elapsed;
     SchedulerBinding.instance.addPostFrameCallback((_) {
