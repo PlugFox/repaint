@@ -45,6 +45,9 @@ class _PerformanceOverlayScreenState extends State<PerformanceOverlayScreen> {
 class PerformanceOverlayPainter extends RePainterBase {
   PerformanceOverlayPainter();
 
+  Rect _overlayRect = Rect.zero;
+  Offset _overlayRectOffset = Offset.zero;
+
   int _optionsMask = 0;
 
   /// Metrics.
@@ -125,6 +128,17 @@ class PerformanceOverlayPainter extends RePainterBase {
   void internalUpdate(RePaintBox box, Duration elapsed, double delta) {}
 
   @override
+  @mustCallSuper
+  void onPointerEvent(PointerEvent event) {
+    if (!_showPerformanceOverlay || _overlayRect.isEmpty) return;
+    if (event case PointerMoveEvent move) {
+      final overlayRect = _overlayRect.shift(_overlayRectOffset);
+      if (!overlayRect.contains(event.localPosition)) return;
+      _overlayRectOffset += move.delta;
+    }
+  }
+
+  @override
   @nonVirtual
   void update(RePaintBox box, Duration elapsed, double delta) {
     final begin = _stopwatch.elapsed;
@@ -164,12 +178,13 @@ class PerformanceOverlayPainter extends RePainterBase {
         ..blendMode = BlendMode.srcOver
         ..filterQuality = FilterQuality.none
         ..isAntiAlias = false;
-      var rect = Rect.fromLTWH(
+      var rect = _overlayRect = Rect.fromLTWH(
         8,
         8,
         math.min(paintBounds.width - 16, maxWidth),
         math.min(paintBounds.height - 16, 128 * 3 + 16),
       );
+      rect = rect.shift(_overlayRectOffset);
       // Draw card for performance & metrics.
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(8)),
