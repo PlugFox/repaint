@@ -1,11 +1,13 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:repaint/repaint.dart';
 import 'package:repaintexample/src/common/widget/app.dart';
 
@@ -75,6 +77,19 @@ class PerformanceOverlayPainter extends RePainterBase {
         : const <PerformanceOverlayOption>{});
   }
 
+  bool _onKeyEvent(KeyEvent event) {
+    if (event.deviceType != KeyEventDeviceType.keyboard) return false;
+    if (event is! KeyDownEvent) return false;
+    // F2 - Switch performance overlay.
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.f2:
+        switchPerformanceOverlay();
+        return true;
+      default:
+        return false;
+    }
+  }
+
   @override
   @mustCallSuper
   void mount(RePaintBox box, PipelineOwner owner) {
@@ -83,11 +98,13 @@ class PerformanceOverlayPainter extends RePainterBase {
     _stopwatch
       ..reset()
       ..start();
+    HardwareKeyboard.instance.addHandler(_onKeyEvent);
   }
 
   @override
   @mustCallSuper
   void unmount() {
+    HardwareKeyboard.instance.removeHandler(_onKeyEvent);
     _clearMetrics();
     _stopwatch.stop();
     _metricsText = '';
