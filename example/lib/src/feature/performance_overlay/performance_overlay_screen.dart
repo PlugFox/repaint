@@ -131,8 +131,8 @@ class PerformanceOverlayPainter extends RePainterBase {
     if (elapsed.inSeconds case int seconds when seconds != _metrics[0]) {
       final buffer = StringBuffer()
         /* ..writeln('Current second: ${_metrics[0]}') */
-        ..writeln(
-            '${_metrics[1]} fps, ${(1000 / _metrics[1]).toStringAsFixed(2)} ms/f')
+        ..writeln('${_metrics[1]} fps, '
+            '${(1000 / _metrics[1]).toStringAsFixed(2)} ms/f')
         ..writeln('update time: ${(_metrics[2] / 1000).toStringAsFixed(2)} ms')
         ..writeln('paint time: ${(_metrics[3] / 1000).toStringAsFixed(2)} ms')
         ..writeln('render time: ${(_metrics[4] / 1000).toStringAsFixed(2)} ms');
