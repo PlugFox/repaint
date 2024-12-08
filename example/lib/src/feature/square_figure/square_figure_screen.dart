@@ -84,8 +84,8 @@ class _SquareFigureScreenState extends State<SquareFigureScreen> {
                     child: AspectRatio(
                       aspectRatio: 1.5,
                       child: RePaint(
-                            painter: _painter,
-                          ),
+                        painter: _painter,
+                      ),
                     ),
                   ),
                 ),
@@ -114,8 +114,7 @@ class _SquareFigureScreenState extends State<SquareFigureScreen> {
                                   min: 0,
                                   max: 100,
                                   value: value.toDouble(),
-                                  onChanged: (val) => _progress.value =
-                                      val.round().clamp(0, 100),
+                                  onChanged: (val) => _progress.value = val.round().clamp(0, 100),
                                 ),
                                 Text(
                                   '$value% (${_painter.cubesToUse} cubes)',
@@ -132,8 +131,7 @@ class _SquareFigureScreenState extends State<SquareFigureScreen> {
                           dimension: 48,
                           child: IconButton(
                             icon: const Icon(Icons.bug_report),
-                            onPressed: () =>
-                                _painter.switchPerformanceOverlay(),
+                            onPressed: () => _painter.switchPerformanceOverlay(),
                           ),
                         ),
                       ],
@@ -237,7 +235,6 @@ class _SquarePainter extends PerformanceOverlayPainter {
       dimensionAmount = dimensionAmount + 1;
       final testNumber = math.pow(dimensionAmount, 3).ceil();
       if (testNumber >= cubesAmount) {
-        
         break;
       }
     }
@@ -268,35 +265,44 @@ class _SquarePainter extends PerformanceOverlayPainter {
   }
 
   int cubesToUse = 1;
-  void setCubesAmount(int amount){
+  void setCubesAmount(int amount) {
     cubesToUse = amount * amount * 1;
   }
 
   Duration elapsedLast = Duration.zero;
+  String _lastKey = '';
   @override
   void internalUpdate(RePaintBox box, Duration elapsed, double delta) {
     final size = box.size;
     final dimension = size.shortestSide;
     final center = size.center(Offset.zero);
-    _points = [];
+    
     final dt = (elapsedLast.inMilliseconds - elapsed.inMilliseconds) / 1024;
+
     if (autoRotate) {
       yawAngle += 4 * dt;
       pitchAngle += 6 * dt;
       rollAngle += 8 * dt;
     }
+
+    String getKey() => '$yawAngle-$pitchAngle-$rollAngle-$cubesToUse';
+    final key = getKey();
+    if (key == _lastKey) {
+      return;
+    }
+    _points = [];
+    _lastKey = key;
     elapsedLast = elapsed;
 
     final dimensionAmount = calculateDimension(cubesToUse);
-
-     
 
     for (int cubeIdx = 0; cubeIdx < cubesToUse; ++cubeIdx) {
       final movedVertices = verticesCubeForIndex(cubeIdx, cubesToUse);
       final rotatedVertices = movedVertices
           .map((v) => rotate3D(v.map((e) => e * dimension).toList(), pitchAngle, yawAngle, rollAngle))
           .toList();
-      final projectedVertices = rotatedVertices.map((v) => projectSimple(v, cameraDistance: dimension * (2 + dimensionAmount / 4))).toList();
+      final projectedVertices =
+          rotatedVertices.map((v) => projectSimple(v, cameraDistance: dimension * (2 + dimensionAmount / 4))).toList();
 
       for (var i = 0; i < edgesCube.length; ++i) {
         final edge = edgesCube[i];
