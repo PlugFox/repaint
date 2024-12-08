@@ -240,6 +240,13 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     final outerDotColor = _theme.colorScheme.primary.value;
     final innerDotColor = _theme.colorScheme.secondary.value;
 
+    // 120 градусов
+    const angleStep = 2 * math.pi / 3;
+    // Начальный угол (вершина треугольника направлена вверх)
+    const startAngle = -math.pi / 2;
+    // Добавляем вращение в зависимости от времени
+    final rotationAngle =
+        elapsed.inMilliseconds / 1000.0 * math.pi; // Скорость вращения
     // Устанавливаем вершины треугольника
     for (var i = 0; i < _maxSeeds; i++) {
       final isOuter = i < _seeds;
@@ -249,14 +256,10 @@ class SunflowerPainter extends PerformanceOverlayPainter {
               ? _evalOuter(radius, _maxSeeds, i)
               : _evalInner(radius, _maxSeeds, i));
       final triRadius = isOuter ? 20.0 : 40.0;
-      // 120 градусов
-      const angleStep = 2 * math.pi / 3;
-      // Начальный угол (вершина треугольника направлена вверх)
-      const startAngle = -math.pi / 2;
       final triPositionOffset = i * 6;
       final triColorOffset = i * 3;
       for (var j = 0, x = 0, y = 1; j < 3; j++, x += 2, y += 2) {
-        final angle = startAngle + angleStep * j;
+        final angle = startAngle + angleStep * j + rotationAngle;
         // Устанавливаем вершины треугольника
         _positions[triPositionOffset + x] =
             triCenter.dx + triRadius * math.cos(angle);
@@ -283,9 +286,10 @@ class SunflowerPainter extends PerformanceOverlayPainter {
       ..blendMode = BlendMode.src
       ..filterQuality = FilterQuality.none;
 
-    canvas.drawRect(Offset.zero & box.size,
-        paint..color = Colors.lightBlue // _theme.canvasColor,
-        );
+    canvas.drawRect(
+      Offset.zero & box.size,
+      paint..color = _theme.canvasColor,
+    );
 
     canvas.drawVertices(
       _vertices,
