@@ -170,11 +170,11 @@ class SunflowerPainter extends PerformanceOverlayPainter {
   /// Phi (φ) is the golden ratio (1 + √5) / 2
   static final double phi = (math.sqrt(5) + 1) / 2;
 
-  static double _lerpDouble(double a, double b, double t) =>
-      a * (1.0 - t) + b * t;
+  /* static double _lerpDouble(double a, double b, double t) =>
+      a * (1.0 - t) + b * t; */
 
-  static Offset _lerpOffset(Offset a, Offset b, double t) =>
-      Offset(_lerpDouble(a.dx, b.dx, t), _lerpDouble(a.dy, b.dy, t));
+  /* static Offset _lerpOffset(Offset a, Offset b, double t) =>
+      Offset(_lerpDouble(a.dx, b.dx, t), _lerpDouble(a.dy, b.dy, t)); */
 
   static Offset _evalOuter(double radius, int max, int i) {
     final theta = i * tau / (max - 1);
@@ -207,8 +207,10 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     );
   }
 
+  /// Set the number of seeds in the sunflower
   void setProgress(int progress) => _seeds = (_maxSeeds * progress) ~/ 100;
 
+  /// Set the theme for the sunflower
   void setTheme(ThemeData theme) => _theme = theme;
 
   /// Генерирует вершины равнобедренного треугольника, вписанного в окружность
