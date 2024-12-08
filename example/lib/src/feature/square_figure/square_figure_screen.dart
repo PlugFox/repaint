@@ -24,8 +24,22 @@ class _SquareFigureScreenState extends State<SquareFigureScreen> {
   final _painter = _SquarePainter();
   final focusNode = FocusNode()..requestFocus();
 
+  final ValueNotifier<int> _progress = ValueNotifier<int>(1);
+
+  @override
+  void initState() {
+    super.initState();
+    _progress.addListener(_updateAmount);
+    _updateAmount();
+  }
+
+  void _updateAmount() => _painter.setCubesAmount(_progress.value);
+
   @override
   void dispose() {
+    _progress
+      ..removeListener(_updateAmount)
+      ..dispose();
     focusNode.dispose();
     super.dispose();
   }
@@ -63,21 +77,70 @@ class _SquareFigureScreenState extends State<SquareFigureScreen> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1.0,
-                child: FittedBox(
-                  alignment: Alignment.center,
-                  fit: BoxFit.scaleDown,
-                  clipBehavior: Clip.none,
-                  child: SizedBox.square(
-                    dimension: 720,
-                    child: RePaint(
-                      painter: _painter,
+            child: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: 1.5,
+                      child: RePaint(
+                            painter: _painter,
+                          ),
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 8.0),
+                SizedBox(
+                  height: 72,
+                  child: FittedBox(
+                    alignment: Alignment.center,
+                    fit: BoxFit.scaleDown,
+                    clipBehavior: Clip.none,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        SizedBox(
+                          width: 300,
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: _progress,
+                            builder: (context, value, child) => Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                Slider(
+                                  min: 0,
+                                  max: 100,
+                                  value: value.toDouble(),
+                                  onChanged: (val) => _progress.value =
+                                      val.round().clamp(0, 100),
+                                ),
+                                Text(
+                                  '$value% (${_painter.cubesToUse} cubes)',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox.square(
+                          dimension: 48,
+                          child: IconButton(
+                            icon: const Icon(Icons.bug_report),
+                            onPressed: () =>
+                                _painter.switchPerformanceOverlay(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -168,6 +231,47 @@ class _SquarePainter extends PerformanceOverlayPainter {
     return [coords3d[0] * scale, coords3d[1] * scale];
   }
 
+  int calculateDimension(int cubesAmount) {
+    int dimensionAmount = 1;
+    for (int i = 0; i < cubesAmount; ++i) {
+      dimensionAmount = dimensionAmount + 1;
+      final testNumber = math.pow(dimensionAmount, 3).ceil();
+      if (testNumber >= cubesAmount) {
+        
+        break;
+      }
+    }
+    return dimensionAmount;
+  }
+
+  List<List<int>> verticesCubeForIndex(int idx, int maxIdx) {
+    final dimensionAmount = calculateDimension(maxIdx);
+
+    int rowIdx = 0;
+    int colIdx = 0;
+    int depthIdx = 0;
+    for (int i = 0; i < idx; ++i) {
+      colIdx++;
+      if (colIdx >= dimensionAmount) {
+        colIdx = 0;
+        rowIdx++;
+        if (rowIdx >= dimensionAmount) {
+          rowIdx = 0;
+          depthIdx++;
+        }
+      }
+    }
+
+    return verticesCube
+        .map((v) => [v[0] - colIdx + dimensionAmount ~/ 2, v[1] - rowIdx + dimensionAmount ~/ 2, v[2] + depthIdx])
+        .toList();
+  }
+
+  int cubesToUse = 1;
+  void setCubesAmount(int amount){
+    cubesToUse = amount * amount * 1;
+  }
+
   Duration elapsedLast = Duration.zero;
   @override
   void internalUpdate(RePaintBox box, Duration elapsed, double delta) {
@@ -183,17 +287,24 @@ class _SquarePainter extends PerformanceOverlayPainter {
     }
     elapsedLast = elapsed;
 
-    final rotatedVertices = verticesCube
-        .map((v) => rotate3D(v.map((e) => e * dimension).toList(), pitchAngle, yawAngle, rollAngle))
-        .toList();
-    final projectedVertices = rotatedVertices.map((v) => projectSimple(v, cameraDistance: dimension * 2)).toList();
+    final dimensionAmount = calculateDimension(cubesToUse);
 
-    for (var i = 0; i < edgesCube.length; ++i) {
-      final edge = edgesCube[i];
-      final start2d = projectedVertices[edge[0]];
-      final end2d = projectedVertices[edge[1]];
-      _points.add(Offset(center.dx + start2d[0], center.dy - start2d[1]));
-      _points.add(Offset(center.dx + end2d[0], center.dy - end2d[1]));
+     
+
+    for (int cubeIdx = 0; cubeIdx < cubesToUse; ++cubeIdx) {
+      final movedVertices = verticesCubeForIndex(cubeIdx, cubesToUse);
+      final rotatedVertices = movedVertices
+          .map((v) => rotate3D(v.map((e) => e * dimension).toList(), pitchAngle, yawAngle, rollAngle))
+          .toList();
+      final projectedVertices = rotatedVertices.map((v) => projectSimple(v, cameraDistance: dimension * (2 + dimensionAmount / 4))).toList();
+
+      for (var i = 0; i < edgesCube.length; ++i) {
+        final edge = edgesCube[i];
+        final start2d = projectedVertices[edge[0]];
+        final end2d = projectedVertices[edge[1]];
+        _points.add(Offset(center.dx + start2d[0], center.dy - start2d[1]));
+        _points.add(Offset(center.dx + end2d[0], center.dy - end2d[1]));
+      }
     }
     _vertices = Vertices.raw(
       VertexMode.triangles,
