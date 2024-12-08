@@ -27,6 +27,7 @@ class _SunflowerScreenState extends State<SunflowerScreen> {
   void initState() {
     super.initState();
     _progress.addListener(_updateSeeds);
+    _updateSeeds();
   }
 
   void _updateSeeds() => _painter.setProgress(_progress.value);
@@ -77,7 +78,10 @@ class _SunflowerScreenState extends State<SunflowerScreen> {
                 const SizedBox(height: 8.0),
                 SizedBox(
                   height: 72,
-                  child: Center(
+                  child: FittedBox(
+                    alignment: Alignment.center,
+                    fit: BoxFit.scaleDown,
+                    clipBehavior: Clip.none,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -134,8 +138,11 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     int max = 10000,
   }) : _maxSeeds = max;
 
+  /// Speed of the sunflower animation
+  static const double speed = 0.001;
+
   /// Sunflower padding to the edge of the canvas 0..1
-  static const double padding = 0.15;
+  static const double padding = 0.3;
 
   /// Tau (τ) is the ratio of a circle's circumference to its radius
   static const double tau = math.pi * 2;
@@ -178,8 +185,10 @@ class SunflowerPainter extends PerformanceOverlayPainter {
 
   /// Генерирует вершины равнобедренного треугольника, вписанного в окружность
   /// с радиусом [radius] и центром в точке [center].
-  static List<Offset> generateIsoscelesTriangle(Offset center,
-      [double radius = 6]) {
+  static List<Offset> generateIsoscelesTriangle(
+    Offset center, [
+    double radius = 6,
+  ]) {
     // Угол между вершинами треугольника в радианах
     const angleStep = 2 * math.pi / 3; // 120 градусов
     // Начальный угол
@@ -211,12 +220,12 @@ class SunflowerPainter extends PerformanceOverlayPainter {
         for (var i = 0; i < _seeds; i++)
           ...generateIsoscelesTriangle(
             center + _evalOuter(radius, _maxSeeds, i),
-            7,
+            20,
           ),
         for (var i = _seeds; i < _maxSeeds; i++)
           ...generateIsoscelesTriangle(
             center + _evalInner(radius, _maxSeeds, i),
-            10,
+            40,
           ),
       ],
       colors: <Color>[
@@ -244,10 +253,10 @@ class SunflowerPainter extends PerformanceOverlayPainter {
       ..blendMode = BlendMode.src
       ..filterQuality = FilterQuality.none;
 
-    /* canvas.drawRect(
-      Offset.zero & size,
-      paint..color = Colors.lightBlue,
-    ); */
+    canvas.drawRect(
+      Offset.zero & box.size,
+      paint..color = _theme.canvasColor,
+    );
 
     /* paint.color = Colors.deepPurple;
     for (var i = 0; i < _seeds; i++) {
