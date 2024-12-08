@@ -237,8 +237,16 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     final size = box.size;
     final radius = size.shortestSide / 2; // Радиус окружности
     final center = size.center(Offset.zero); // Центр окружности
-    final outerDotColor = _theme.colorScheme.primary.value;
-    final innerDotColor = _theme.colorScheme.secondary.value;
+    final outerDotColors = [
+      Colors.lime.value,
+      Colors.lightBlue.value,
+      Colors.lightGreen.value,
+    ];
+    final innerDotColors = [
+      Colors.deepOrange.value,
+      Colors.red.value,
+      Colors.pink.value,
+    ];
 
     // 120 градусов
     const angleStep = 2 * math.pi / 3;
@@ -266,7 +274,8 @@ class SunflowerPainter extends PerformanceOverlayPainter {
         _positions[triPositionOffset + y] =
             triCenter.dy + triRadius * math.sin(angle);
         // Устанавливаем цвета вершин
-        _colors[triColorOffset + j] = isOuter ? outerDotColor : innerDotColor;
+        _colors[triColorOffset + j] =
+            isOuter ? outerDotColors[j] : innerDotColors[j];
       }
     }
     _vertices = Vertices.raw(
