@@ -8,7 +8,7 @@ import 'repainter_interface.dart';
 /// {@template repainter_base}
 /// The base class for a custom scene painter.
 /// {@endtemplate}
-abstract base class RePainterBase implements RePainter {
+abstract /* base */ class RePainterBase implements RePainter {
   /// {@macro repainter_base}
   const RePainterBase();
 
@@ -21,18 +21,18 @@ abstract base class RePainterBase implements RePainter {
   }
 
   @override
-  void mount(PipelineOwner owner, RePaintBox box) {
+  void mount(RePaintBox box, PipelineOwner owner) {
     // implement mount
-  }
-
-  @override
-  void render(RePaintBox box, Canvas canvas) {
-    // implement render
   }
 
   @override
   void update(RePaintBox box, Duration elapsed, double delta) {
     // implement update
+  }
+
+  @override
+  void onPointerEvent(PointerEvent event) {
+    // implement onPointerEvent
   }
 
   @override

@@ -16,7 +16,9 @@ vec4 pink() {
     return vec4(vec3(1.0f, 0.0f, 0.5f), 1.0f);
 }
 
-// https://thebookofshaders.com/02/
+// https://thebookofshaders.com
+// https://editor.thebookofshaders.com
+// https://www.desmos.com/calculator
 // https://docs.flutter.dev/ui/design/graphics/fragment-shaders
 // https://github.com/Hixie/sky_engine/tree/master/impeller/entity/shaders
 // https://github.com/Hixie/sky_engine/tree/master/impeller/compiler/shader_lib/flutter/runtime_effect.glsl

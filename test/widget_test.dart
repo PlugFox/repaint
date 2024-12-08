@@ -23,7 +23,6 @@ void main() {
           allOf(
             isNotNull,
             isA<Element>(),
-            isA<RePaintElement>(),
             isA<RePaintElement>()
                 .having(
                   (e) => e.widget,

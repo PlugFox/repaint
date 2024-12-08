@@ -62,8 +62,9 @@ class RePaint extends LeafRenderObjectWidget {
     renderObject._context = context;
     if (identical(painter, renderObject.painter)) return;
     if (renderObject.attached) painter.unmount();
+    assert(renderObject.owner != null, 'RenderObject is not attached.');
     renderObject._painter = painter
-      ..mount(renderObject.owner!, renderObject)
+      ..mount(renderObject, renderObject.owner!)
       ..lifecycle(
           WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed);
   }
@@ -137,13 +138,15 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   bool get sizedByParent => true;
 
   @override
+  @protected
   Size computeDryLayout(BoxConstraints constraints) => constraints.biggest;
 
   @override
+  @protected
   void attach(PipelineOwner owner) {
     super.attach(owner);
     _painter
-      ..mount(owner, this)
+      ..mount(this, owner)
       ..lifecycle(
           WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed);
     WidgetsBinding.instance.addObserver(this);
@@ -151,6 +154,32 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   }
 
   @override
+  bool hitTestSelf(Offset position) => true;
+
+  @override
+  bool hitTestChildren(
+    BoxHitTestResult result, {
+    required Offset position,
+  }) =>
+      false;
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    var hitTarget = false;
+    if (size.contains(position)) {
+      hitTarget = hitTestSelf(position);
+      result.add(BoxHitTestEntry(this, position));
+    }
+    return hitTarget;
+  }
+
+  @override
+  void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
+    painter.onPointerEvent(event);
+  }
+
+  @override
+  @protected
   void detach() {
     super.detach();
     _ticker?.dispose();
@@ -173,6 +202,7 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   }
 
   @override
+  @protected
   void debugResetSize() {
     super.debugResetSize();
     if (!super.hasSize) return;
@@ -208,10 +238,12 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   }
 
   @override
+  @protected
   void paint(PaintingContext context, Offset offset) {
-    context.canvas.save();
-    context.canvas.translate(offset.dx, offset.dy);
-    _painter.render(this, context.canvas); // Render the scene.
+    context.canvas
+      ..save()
+      ..translate(offset.dx, offset.dy);
+    _painter.paint(this, context); // Paint scene using the custom controller.
     context.canvas.restore();
   }
 }
