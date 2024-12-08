@@ -1,5 +1,6 @@
 ## 0.0.4
 
+- **ADDED**: More examples
 - **CHANGED**: Change interface of `RePainter` delegate.
 
 ## 0.0.3
