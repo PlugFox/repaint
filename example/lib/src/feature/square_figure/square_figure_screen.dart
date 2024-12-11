@@ -57,7 +57,6 @@ class _SquareFigureScreenState extends State<SquareFigureScreen> {
         focusNode: focusNode,
         autofocus: true,
         onKeyEvent: (key) {
-          print('Key: ${key.logicalKey.keyId}');
           _painter.autoRotate = false;
           switch (key.logicalKey.keyId) {
             case 100: // right (d)
@@ -147,21 +146,24 @@ class _SquareFigureScreenState extends State<SquareFigureScreen> {
   }
 }
 
+/// uses `drawRawPoints` to draw square skeletons
 class _SquarePainter extends PerformanceOverlayPainter {
   _SquarePainter()
-      : _positions = Float32List(verticiesAmount * 6),
+      : _positionsVerticies = Float32List(verticiesAmount * 6),
+        _positionsPoints = Float32List(verticiesAmount * 6),
         _colors = Int32List(verticiesAmount * 3) {
     _initVertices();
   }
 
   static const verticiesAmount = 4;
-  final Float32List _positions;
+  final Float32List _positionsVerticies;
 
   final Int32List _colors;
 
+  // ignore: unused_field Later will experiment with vertices
   late Vertices _vertices;
 
-  List<Offset> _points = [];
+  Float32List _positionsPoints;
 
   double pitchAngle = 0; // plane nose goes up-down
   double yawAngle = 0; // plane nose goes left-right
@@ -184,7 +186,7 @@ class _SquarePainter extends PerformanceOverlayPainter {
   void _initVertices() {
     _vertices = Vertices.raw(
       VertexMode.triangles,
-      _positions,
+      _positionsVerticies,
       colors: _colors,
     );
   }
@@ -271,12 +273,26 @@ class _SquarePainter extends PerformanceOverlayPainter {
 
   Duration elapsedLast = Duration.zero;
   String _lastKey = '';
+
+  bool _computed = true;
   @override
   void internalUpdate(RePaintBox box, Duration elapsed, double delta) {
+    if (!_computed) {
+      return;
+    }
+    _computed = false;
+    _compute(box, elapsed, delta).then((_) {
+      _computed = true;
+    });
+  }
+
+  Future<void> _compute(RePaintBox box, Duration elapsed, double delta) async {
     final size = box.size;
     final dimension = size.shortestSide;
     final center = size.center(Offset.zero);
-    
+
+    final cubesAmount = cubesToUse;
+
     final dt = (elapsedLast.inMilliseconds - elapsed.inMilliseconds) / 1024;
 
     if (autoRotate) {
@@ -285,36 +301,42 @@ class _SquarePainter extends PerformanceOverlayPainter {
       rollAngle += 8 * dt;
     }
 
-    String getKey() => '$yawAngle-$pitchAngle-$rollAngle-$cubesToUse';
-    final key = getKey();
+    String getKey() => '$yawAngle-$pitchAngle-$rollAngle-$cubesAmount';
+    final key = getKey(); // Not rebuild UI for static cubes
     if (key == _lastKey) {
       return;
     }
-    _points = [];
     _lastKey = key;
     elapsedLast = elapsed;
 
-    final dimensionAmount = calculateDimension(cubesToUse);
+    final dimensionAmount = calculateDimension(cubesAmount);
 
-    for (int cubeIdx = 0; cubeIdx < cubesToUse; ++cubeIdx) {
-      final movedVertices = verticesCubeForIndex(cubeIdx, cubesToUse);
+    final positionsPoints = Float32List(cubesAmount * edgesCube.length * 4);
+    for (int cubeIdx = 0; cubeIdx < cubesAmount; ++cubeIdx) {
+      // This one can help us to avoid blocking the UI thread:
+      // await Future<void>.delayed(Duration.zero);
+      final movedVertices = verticesCubeForIndex(cubeIdx, cubesAmount);
       final rotatedVertices = movedVertices
           .map((v) => rotate3D(v.map((e) => e * dimension).toList(), pitchAngle, yawAngle, rollAngle))
           .toList();
       final projectedVertices =
-          rotatedVertices.map((v) => projectSimple(v, cameraDistance: dimension * (2 + dimensionAmount / 4))).toList();
+          rotatedVertices.map((v) => projectSimple(v, cameraDistance: dimension * (2 + dimensionAmount / 2))).toList();
 
       for (var i = 0; i < edgesCube.length; ++i) {
         final edge = edgesCube[i];
         final start2d = projectedVertices[edge[0]];
         final end2d = projectedVertices[edge[1]];
-        _points.add(Offset(center.dx + start2d[0], center.dy - start2d[1]));
-        _points.add(Offset(center.dx + end2d[0], center.dy - end2d[1]));
+        final shift = edgesCube.length * cubeIdx * 4;
+        positionsPoints[shift + i * 4] = center.dx + start2d[0];
+        positionsPoints[shift + i * 4 + 1] = center.dy - start2d[1];
+        positionsPoints[shift + i * 4 + 2] = center.dx + end2d[0];
+        positionsPoints[shift + i * 4 + 3] = center.dy - end2d[1];
       }
     }
+    _positionsPoints = positionsPoints;
     _vertices = Vertices.raw(
       VertexMode.triangles,
-      _positions,
+      _positionsVerticies,
       colors: _colors,
     );
   }
@@ -335,8 +357,6 @@ class _SquarePainter extends PerformanceOverlayPainter {
     );
 
     paint.color = Colors.black;
-    for (var i = 0; i < (_points.length - 1); i += 2) {
-      canvas.drawLine(_points[i], _points[i + 1], paint);
-    }
+    canvas.drawRawPoints(PointMode.lines, _positionsPoints, paint);
   }
 }
