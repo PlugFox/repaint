@@ -1,3 +1,7 @@
+## 0.0.5
+
+- **CHANGED**: `frameRate` is replaced with `needsPaint` in `RePainter` delegate.
+
 ## 0.0.4
 
 - **ADDED**: More examples
