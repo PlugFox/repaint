@@ -240,6 +240,7 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     final radius = size.shortestSide / 2; // Радиус окружности
     final center = size.center(Offset.zero); // Центр окружности
 
+    // https://github.com/flutter/flutter/issues/160184#issuecomment-2560184639
     int toARGB32(Color color) {
       int floatToInt8(double x) => (x * 255.0).round() & 0xff;
       return floatToInt8(color.a) << 24 |
