@@ -13,7 +13,7 @@ abstract /* base */ class RePainterBase implements RePainter {
   const RePainterBase();
 
   @override
-  int? get frameRate => null;
+  bool get needsPaint => true;
 
   @override
   void lifecycle(AppLifecycleState state) {

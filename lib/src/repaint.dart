@@ -217,24 +217,11 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
     if (!attached) return;
     final delta = elapsed - _lastFrameTime;
     final deltaMs = delta.inMicroseconds / Duration.microsecondsPerMillisecond;
-    switch (_painter.frameRate) {
-      case null:
-        // No frame rate limit.
-        _lastFrameTime = elapsed;
-        break;
-      case <= 0:
-        // Skip updating and rendering the game scene.
-        _lastFrameTime = elapsed;
-        return;
-      case int fr when fr > 0:
-        final targetFrameTime = 1000 / fr;
-        if (deltaMs < targetFrameTime) return; // Limit frame rate
-        _lastFrameTime = elapsed;
-        break;
-    }
+    _lastFrameTime = elapsed;
     // Update game scene and prepare for rendering.
     _painter.update(this, elapsed, deltaMs);
-    markNeedsPaint(); // Mark this game scene as dirty and schedule a repaint.
+    // Mark this game scene as dirty and schedule a repaint.
+    if (_painter.needsPaint) markNeedsPaint();
   }
 
   @override
