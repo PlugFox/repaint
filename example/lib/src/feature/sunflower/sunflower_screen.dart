@@ -239,15 +239,24 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     final size = box.size;
     final radius = size.shortestSide / 2; // Радиус окружности
     final center = size.center(Offset.zero); // Центр окружности
+
+    int toARGB32(Color color) {
+      int floatToInt8(double x) => (x * 255.0).round() & 0xff;
+      return floatToInt8(color.a) << 24 |
+          floatToInt8(color.r) << 16 |
+          floatToInt8(color.g) << 8 |
+          floatToInt8(color.b) << 0;
+    }
+
     final outerDotColors = [
-      Colors.lime.value,
-      Colors.lightBlue.value,
-      Colors.lightGreen.value,
+      toARGB32(Colors.lime),
+      toARGB32(Colors.lightBlue),
+      toARGB32(Colors.lightGreen),
     ];
     final innerDotColors = [
-      Colors.deepOrange.value,
-      Colors.red.value,
-      Colors.pink.value,
+      toARGB32(Colors.deepOrange),
+      toARGB32(Colors.red),
+      toARGB32(Colors.pink),
     ];
 
     // 120 градусов

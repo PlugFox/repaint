@@ -14,6 +14,7 @@ class RePaintInline<T extends Object?> extends StatefulWidget {
     this.update,
     this.tearDown,
     this.frameRate,
+    this.needsPaint = true,
     super.key,
   });
 
@@ -39,6 +40,25 @@ class RePaintInline<T extends Object?> extends StatefulWidget {
   /// 60 - 60 frames per second.
   /// 120 - 120 frames per second.
   final int? frameRate;
+
+  /// The controller needs to be repainted after the update.
+  ///
+  /// If `true`, the controller will be repainted.
+  /// That means the [paint] method will be called after the [update] method.
+  ///
+  /// If `false`, the controller will not be repainted.
+  /// That means the [paint] method
+  /// will not be called after the [update] method.
+  ///
+  /// This is useful when the controller does not need to be repainted
+  /// after the update if the scene is static and does not changed over time.
+  ///
+  /// You can use this flag to optimize the rendering process.
+  /// For example, implement a frame skipper or a frame limiter.
+  ///
+  /// If you want to skip the [update] method too,
+  /// just check it in the [update] method and return immediately.
+  final bool needsPaint;
 
   @override
   State<RePaintInline<T>> createState() => _RePaintInlineState<T>();
@@ -72,17 +92,40 @@ final class _InlinePainter<T> extends RePainterBase {
 
   T? state;
 
+  double _delta = 0;
+
   @override
-  int? get frameRate => widget?.frameRate;
+  bool get needsPaint => _allowFrame && (widget?.needsPaint ?? true);
+  bool _allowFrame = false;
 
   @override
   void mount(RePaintBox box, PipelineOwner owner) {
     state = widget?.setUp?.call(box);
+    _delta = .0;
   }
 
   @override
   void update(RePaintBox box, Duration elapsed, double delta) {
-    state = widget?.update?.call(box, state as T, delta) ?? state;
+    _delta += delta;
+    switch (widget?.frameRate) {
+      case null:
+        // No frame rate limit.
+        _allowFrame = true;
+      case <= 0:
+        // Skip updating and rendering the game scene.
+        _allowFrame = false;
+        return;
+      case int fr when fr > 0:
+        final targetFrameTime = 1000 / fr;
+        if (_delta < targetFrameTime) {
+          _allowFrame = false;
+          return; // Limit frame rate
+        }
+        _allowFrame = true;
+    }
+    final dt = _delta;
+    _delta = .0; // Reset delta
+    state = widget?.update?.call(box, state as T, dt) ?? state;
   }
 
   @override
@@ -92,6 +135,7 @@ final class _InlinePainter<T> extends RePainterBase {
 
   @override
   void unmount() {
+    _delta = .0;
     widget?.tearDown?.call(state as T);
   }
 }

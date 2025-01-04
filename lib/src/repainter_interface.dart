@@ -6,22 +6,24 @@ import 'repaint.dart';
 
 /// The interface for a custom scene painter.
 abstract interface class RePainter {
-  /// The [frameRate] is used to limit the frame rate, (limitter and throttler).
+  /// The controller needs to be repainted after the update.
   ///
-  /// If `null`, the frame rate is not limited.
-  /// 0 - Do not render the scene.
-  /// 30 - 30 frames per second.
-  /// 60 - 60 frames per second.
-  /// 120 - 120 frames per second.
+  /// If `true`, the controller will be repainted.
+  /// That means the [paint] method will be called after the [update] method.
   ///
-  /// After the [frameRate] is set, the real frame rate will be lower.
-  /// Before the frame rate, updates are limited by the flutter ticker,
-  /// so the resulting frame rate will be noticeably lower.
-  /// Because calling the [update] does not immediately cause a redraw,
-  /// but only marks the render object as needing a redraw with
-  /// [RenderObject.markNeedsPaint],
-  /// thats why the frame rate is lower than expected.
-  int? get frameRate;
+  /// If `false`, the controller will not be repainted.
+  /// That means the [paint] method
+  /// will not be called after the [update] method.
+  ///
+  /// This is useful when the controller does not need to be repainted
+  /// after the update if the scene is static and does not changed over time.
+  ///
+  /// You can use this flag to optimize the rendering process.
+  /// For example, implement a frame skipper or a frame limiter.
+  ///
+  /// If you want to skip the [update] method too,
+  /// just check it in the [update] method and return immediately.
+  bool get needsPaint;
 
   /// Mount the controller.
   /// Called when the controller is attached to the render box.

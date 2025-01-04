@@ -356,4 +356,5 @@ final class FrameRateGraph extends RePainterBase {
 
     canvas.restore();
   }
+
 }
