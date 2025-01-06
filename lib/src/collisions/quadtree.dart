@@ -22,7 +22,7 @@ class QuadTree<T extends HitBox> {
     this.parent,
     Map<T, QuadTree<T>>? objectNodeMap,
   })  : _objectNodeMap = objectNodeMap ?? <T, QuadTree<T>>{},
-        objects = [];
+        objects = <T>[];
 
   /// Boundary of the current Quadtree node.
   final HitBox boundary;
@@ -60,9 +60,7 @@ class QuadTree<T extends HitBox> {
   /// Inserts [object] into the Quadtree.
   /// Returns true if insertion is successful, otherwise false.
   bool insert(T object) {
-    if (!_overlapsBoundary(object, boundary)) {
-      return false;
-    }
+    if (!_overlapsBoundary(object, boundary)) return false;
 
     // If there's space and no subdivision yet, simply add the object.
     if (objects.length < capacity && !_subdivided) {
@@ -73,9 +71,7 @@ class QuadTree<T extends HitBox> {
     }
 
     // If not subdivided yet, subdivide.
-    if (!_subdivided) {
-      _subdivide();
-    }
+    if (!_subdivided) _subdivide();
 
     // Try inserting into each child node.
     if (_northWest!.insert(object)) return true;
@@ -136,7 +132,7 @@ class QuadTree<T extends HitBox> {
       for (final object in objects)
         if (object.overlaps(hit)) object,
 
-      // If subdivided, recurse into children.
+      // If subdivided, recurse into children nodes and collect objects.
       ...?_northWest?.query(hit),
       ...?_northEast?.query(hit),
       ...?_southWest?.query(hit),
