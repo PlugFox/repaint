@@ -1,5 +1,7 @@
 // ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
 
+import 'dart:ui' as ui show Rect, Size;
+
 import 'package:meta/meta.dart';
 
 /// {@template hitbox}
@@ -11,7 +13,7 @@ import 'package:meta/meta.dart';
 /// The [width] and [height] represent the dimensions of the hitbox.
 /// {@endtemplate}
 abstract interface class HitBox {
-  /// Creates a hitbox with the specified coordinates and dimensions.
+  /// Creates a rectangle hitbox with the specified dimensions and coordinates.
   /// A hitbox with a rectangular shape and the top-left corner at the specified
   /// coordinates.
   ///
@@ -23,6 +25,11 @@ abstract interface class HitBox {
     double y,
   }) = _HitBox$Rect;
 
+  /// Creates a square hitbox with the specified size and coordinates.
+  /// A hitbox with a square shape and the top-left corner at the specified
+  /// coordinates.
+  ///
+  /// {@macro hitbox}
   factory HitBox.square({
     required double size,
     double x,
@@ -52,6 +59,13 @@ abstract interface class HitBox {
 
   /// The y-coordinate of the bottom edge of the hitbox.
   double get bottom;
+
+  /// The distance between the upper-left corner and the lower-right corner of
+  /// this rectangle.
+  ui.Size get size;
+
+  /// The rectangle that defines the hitbox.
+  ui.Rect get rect;
 
   /// Moves the hitbox to the specified coordinates.
   void move(double x, double y);
@@ -110,6 +124,12 @@ class _HitBox$Rect implements HitBox {
 
   @override
   double get bottom => y + height;
+
+  @override
+  late final ui.Size size = ui.Size(width, height);
+
+  @override
+  ui.Rect get rect => ui.Rect.fromLTWH(x, y, width, height);
 
   @override
   @mustCallSuper
