@@ -129,6 +129,13 @@ class QuadTree<T extends HitBox> {
   /// query region specified by [hit].
   List<T> query(HitBox hit) {
     if (!boundary.overlaps(hit)) return const [];
+
+    // TODO(plugfox): Add sorting by distance to the hitbox or y coordinate.
+    // Mike Matiunin <plugfox@gmail.com>, 07 January 2025
+
+    // TODO(plugfox): Replace List with a Iterable to avoid creating a new list.
+    // Mike Matiunin <plugfox@gmail.com>, 07 January 2025
+
     return <T>[
       // Check objects in the current node.
       for (final object in objects)
@@ -214,7 +221,18 @@ class QuadTree<T extends HitBox> {
   /// Recursively calls [_tryMergeUp] on all children, ensuring every
   /// subtree is merged if possible.
   void _tryMergeDownAll() {
+    // We need to check every child node, even if they're subdivided yet
+    // because we can still merge them and exclude other nodes.
     if (_subdivided) {
+      assert(
+        _northWest != null &&
+            _northEast != null &&
+            _southWest != null &&
+            _southEast != null,
+        'Subdivided but children are null',
+      );
+      // We can still get there null because of the recursive call,
+      // so null check.
       _northWest?._tryMergeDownAll();
       _northEast?._tryMergeDownAll();
       _southWest?._tryMergeDownAll();
