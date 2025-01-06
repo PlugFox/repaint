@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repaint/repaint.dart';
 
-import 'src/repainter_fake.dart';
+import 'fake/repainter_fake.dart';
 
 void main() {
   group('Widget', () {
