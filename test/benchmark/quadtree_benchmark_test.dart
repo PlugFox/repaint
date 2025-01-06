@@ -10,22 +10,34 @@ import 'package:vector_math/vector_math_64.dart' show Vector2;
 void main() => group(
       'QuadTree benchmark',
       () {
-        var report = false;
+        var report = true;
 
         test('Inserts and removes', () {
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
-          if (report) repaint.report(); // ignore: dead_code
+          if (report)
+            // ignore: dead_code
+            repaint.report();
           final flame = _FlameQuadTreeInsertsAndRemovesBenchmark();
-          if (report) flame.report(); // ignore: dead_code
-          expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+          if (report)
+            // ignore: dead_code
+            flame.report();
+          if (!report)
+            // ignore: dead_code
+            expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
         });
 
         test('Static query', () {
           final repaint = _RePaintQuadTreeQueryBenchmark();
-          if (report) repaint.report(); // ignore: dead_code
+          if (report)
+            // ignore: dead_code
+            repaint.report();
           final flame = _FlameQuadTreeQueryBenchmark();
-          if (report) flame.report(); // ignore: dead_code
-          expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+          if (report)
+            // ignore: dead_code
+            flame.report();
+          if (!report)
+            // ignore: dead_code
+            expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
         });
       },
     );
