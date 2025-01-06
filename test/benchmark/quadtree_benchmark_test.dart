@@ -18,7 +18,7 @@ void main() => group(
           expect(a.measure(), lessThanOrEqualTo(b.measure()));
         });
 
-        test('Query', () {
+        test('Static query', () {
           final a = _RePaintQuadTreeQueryBenchmark();
           a.report();
           final b = _FlameQuadTreeQueryBenchmark();

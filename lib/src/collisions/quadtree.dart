@@ -96,12 +96,8 @@ class QuadTree<T extends HitBox> {
   /// After removal, tries merging nodes upward if possible.
   void remove(T object) {
     final node = _objectNodeMap[object];
-    if (node == null) {
-      return; // Object not found in any node
-    }
-    if (!node.objects.remove(object)) {
-      return; // Not actually in that node
-    }
+    if (node == null) return; // Object not found in any node
+    if (!node.objects.remove(object)) return; // Not actually in that node
     _objectNodeMap.remove(object);
     node._tryMergeUp();
   }
@@ -114,25 +110,23 @@ class QuadTree<T extends HitBox> {
   ///    since it might belong to a new location in the tree.
   void move(T object, double x, double y) {
     final node = _objectNodeMap[object];
-    if (node == null) {
-      return; // no such object
-    }
-    // Update position:
-    object.move(x, y);
+    if (node == null) return; // no such object
+
+    object.move(x, y); // Update position
 
     // Check if the object still fits in the same node's boundary.
-    if (!_overlapsBoundary(object, node.boundary)) {
-      // Remove from old node
-      node.objects.remove(object);
-      _objectNodeMap.remove(object);
+    if (_overlapsBoundary(object, node.boundary))
+      return; // If it still fits, do nothing; we've just updated coordinates.
 
-      // Insert from the root
-      root.insert(object);
+    // Remove from old node
+    node.objects.remove(object);
+    _objectNodeMap.remove(object);
 
-      // After removal, old node might be empty, try merging it.
-      node._tryMergeUp();
-    }
-    // If it still fits, do nothing; we've just updated coordinates.
+    // Insert from the root
+    root.insert(object);
+
+    // After removal, old node might be empty, try merging it.
+    node._tryMergeUp();
   }
 
   /// Retrieves a list of objects that might overlap the rectangular
@@ -140,9 +134,7 @@ class QuadTree<T extends HitBox> {
   List<T> query(ui.Rect queryRect) {
     final found = <T>[];
 
-    if (!boundary.overlaps(queryRect)) {
-      return found;
-    }
+    if (!boundary.overlaps(queryRect)) return found;
 
     // Check objects in the current node.
     for (final object in objects) {
@@ -151,9 +143,7 @@ class QuadTree<T extends HitBox> {
         top: queryRect.top,
         right: queryRect.right,
         bottom: queryRect.bottom,
-      )) {
-        found.add(object);
-      }
+      )) found.add(object);
     }
 
     // If subdivided, recurse into children.
