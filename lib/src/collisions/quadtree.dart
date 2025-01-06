@@ -341,16 +341,6 @@ class QuadTree<T extends HitBox> {
 
   /// Checks if [object] overlaps [boundary] by coordinate checks
   /// (no new Rect).
-  bool _overlapsBoundary(T object, HitBox boundary) {
-    /* final objectRight = object.x + object.width;
-    final objectBottom = object.y + object.height;
-    final boundaryRight = boundary.left + boundary.width;
-    final boundaryBottom = boundary.top + boundary.height;
-    return object.x < boundaryRight &&
-        objectRight > boundary.left &&
-        object.y < boundaryBottom &&
-        objectBottom > boundary.top; */
-
-    return object.overlaps(boundary);
-  }
+  bool _overlapsBoundary(T object, HitBox boundary) =>
+      object.overlaps(boundary);
 }
