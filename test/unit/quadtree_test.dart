@@ -77,5 +77,16 @@ void main() => group('Quadtree', () {
             ),
           ),
         );
+        expect(
+          qt.query(
+            const ui.Rect.fromLTWH(
+              0,
+              0,
+              10,
+              10,
+            ),
+          ),
+          isEmpty,
+        );
       });
     });
