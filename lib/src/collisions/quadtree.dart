@@ -90,12 +90,12 @@ class QuadTree<T extends HitBox> {
 
   /// Removes [object] from the Quadtree if it exists.
   /// After removal, tries merging nodes upward if possible.
-  void remove(T object) {
+  void remove(T object, {bool optimize = true}) {
     final node = _objectNodeMap[object];
     if (node == null) return; // Object not found in any node
     if (!node.objects.remove(object)) return; // Not actually in that node
     _objectNodeMap.remove(object);
-    node._tryMergeUp();
+    if (optimize) node._tryMergeUp();
   }
 
   /// Moves [object] to new [x], [y] coordinates.
@@ -104,7 +104,7 @@ class QuadTree<T extends HitBox> {
   /// 2. If the object is still in the same boundary, just update position.
   /// 3. Otherwise, removes from old node and re-inserts into the root,
   ///    since it might belong to a new location in the tree.
-  void move(T object, double x, double y) {
+  void move(T object, double x, double y, {bool optimize = true}) {
     final node = _objectNodeMap[object];
     if (node == null) return; // no such object
 
@@ -122,7 +122,7 @@ class QuadTree<T extends HitBox> {
     root.insert(object);
 
     // After removal, old node might be empty, try merging it.
-    node._tryMergeUp();
+    if (optimize) node._tryMergeUp();
   }
 
   /// Retrieves a list of objects that might overlap the rectangular
@@ -215,10 +215,10 @@ class QuadTree<T extends HitBox> {
   /// subtree is merged if possible.
   void _tryMergeDownAll() {
     if (_subdivided) {
-      _northWest!._tryMergeDownAll();
-      _northEast!._tryMergeDownAll();
-      _southWest!._tryMergeDownAll();
-      _southEast!._tryMergeDownAll();
+      _northWest?._tryMergeDownAll();
+      _northEast?._tryMergeDownAll();
+      _southWest?._tryMergeDownAll();
+      _southEast?._tryMergeDownAll();
     }
     _tryMergeUp();
   }

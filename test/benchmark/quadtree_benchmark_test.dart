@@ -12,15 +12,16 @@ void main() => group(
       () {
         var report = true;
 
-        /*
-        RePaint QuadTree inserts & removes(RunTime): 192.98485448426055 us.
-        Flame QuadTree inserts & removes(RunTime): 2433.271 us.
-        */
         test('Inserts and removes', () {
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
           if (report)
             // ignore: dead_code
             repaint.report();
+          final repaintBatch =
+              _RePaintQuadTreeInsertsAndRemovesBatchBenchmark();
+          if (report)
+            // ignore: dead_code
+            repaintBatch.report();
           final flame = _FlameQuadTreeInsertsAndRemovesBenchmark();
           if (report)
             // ignore: dead_code
@@ -63,6 +64,7 @@ class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
 
   @override
   void run() {
+    qt.clear();
     final queue = Queue<HitBox>();
     for (var i = 0; i < 100; i++) {
       final box = HitBox.square(size: 10, x: i * 10.0, y: i * 10.0);
@@ -70,7 +72,35 @@ class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
       qt.insert(box);
     }
     while (queue.isNotEmpty) qt.remove(queue.removeFirst());
+  }
+}
+
+class _RePaintQuadTreeInsertsAndRemovesBatchBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeInsertsAndRemovesBatchBenchmark()
+      : super('RePaint QuadTree inserts & removes batch');
+
+  late QuadTree qt;
+
+  @override
+  void setup() {
+    qt = QuadTree(
+      boundary: HitBox.square(size: 1000),
+      capacity: 25,
+    );
+    super.setup();
+  }
+
+  @override
+  void run() {
     qt.clear();
+    final queue = Queue<HitBox>();
+    for (var i = 0; i < 100; i++) {
+      final box = HitBox.square(size: 10, x: i * 10.0, y: i * 10.0);
+      queue.add(box);
+      qt.insert(box);
+    }
+    while (queue.isNotEmpty) qt.remove(queue.removeFirst(), optimize: false);
+    qt.optimize();
   }
 }
 
@@ -93,6 +123,7 @@ class _FlameQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
 
   @override
   void run() {
+    qt.clear();
     final queue = Queue<flame.RectangleHitbox>();
     for (var i = 0; i < 100; i++) {
       final box = flame.RectangleHitbox(
@@ -103,7 +134,7 @@ class _FlameQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
       qt.add(box);
     }
     while (queue.isNotEmpty) qt.remove(queue.removeFirst());
-    qt.clear();
+    qt.optimize();
   }
 }
 
