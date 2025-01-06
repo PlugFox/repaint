@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'hitbox.dart';
 
 /// {@template quadtree}
@@ -21,7 +23,7 @@ class QuadTree<T extends HitBox> {
     this.capacity = 4,
     this.parent,
     Map<T, QuadTree<T>>? objectNodeMap,
-  })  : _objectNodeMap = objectNodeMap ?? <T, QuadTree<T>>{},
+  })  : _objectNodeMap = objectNodeMap ?? HashMap<T, QuadTree<T>>(),
         objects = <T>[];
 
   /// Boundary of the current Quadtree node.

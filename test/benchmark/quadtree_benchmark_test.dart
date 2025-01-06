@@ -12,6 +12,10 @@ void main() => group(
       () {
         var report = true;
 
+        /*
+        RePaint QuadTree inserts & removes(RunTime): 192.98485448426055 us.
+        Flame QuadTree inserts & removes(RunTime): 2433.271 us.
+        */
         test('Inserts and removes', () {
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
           if (report)
