@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:repaint/repaint.dart';
 import 'package:test/test.dart';
 
@@ -7,7 +5,7 @@ void main() => group('Quadtree', () {
       test('Create', () {
         expect(
           () => QuadTree(
-            boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
+            boundary: HitBox.square(size: 100),
             capacity: 4,
           ),
           returnsNormally,
@@ -16,7 +14,7 @@ void main() => group('Quadtree', () {
 
       test('Insert', () {
         final qt = QuadTree(
-          boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
+          boundary: HitBox.square(size: 100),
           capacity: 4,
         );
         expect(
@@ -34,7 +32,7 @@ void main() => group('Quadtree', () {
 
       test('Query', () {
         final qt = QuadTree(
-          boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
+          boundary: HitBox.square(size: 100),
           capacity: 4,
         )..insert(
             HitBox.rect(
@@ -46,22 +44,21 @@ void main() => group('Quadtree', () {
           );
         expect(
           () => qt.query(
-            const ui.Rect.fromLTWH(
-              10,
-              10,
-              10,
-              10,
+            HitBox.rect(
+              width: 10,
+              height: 10,
+              x: 10,
+              y: 10,
             ),
           ),
           returnsNormally,
         );
         expect(
           qt.query(
-            const ui.Rect.fromLTWH(
-              10,
-              10,
-              10,
-              10,
+            HitBox.square(
+              size: 10,
+              x: 10,
+              y: 10,
             ),
           ),
           allOf(
@@ -79,11 +76,8 @@ void main() => group('Quadtree', () {
         );
         expect(
           qt.query(
-            const ui.Rect.fromLTWH(
-              0,
-              0,
-              10,
-              10,
+            HitBox.square(
+              size: 10,
             ),
           ),
           isEmpty,

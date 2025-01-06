@@ -1,5 +1,3 @@
-import 'dart:ui' as ui show Rect;
-
 import 'hitbox.dart';
 
 /// {@template quadtree}
@@ -27,7 +25,7 @@ class QuadTree<T extends HitBox> {
         objects = [];
 
   /// Boundary of the current Quadtree node.
-  final ui.Rect boundary;
+  final HitBox boundary;
 
   /// Maximum number of objects in this node before subdividing.
   final int capacity;
@@ -130,32 +128,20 @@ class QuadTree<T extends HitBox> {
   }
 
   /// Retrieves a list of objects that might overlap the rectangular
-  /// query region specified by [queryRect].
-  List<T> query(ui.Rect queryRect) {
-    final found = <T>[];
+  /// query region specified by [hit].
+  List<T> query(HitBox hit) {
+    if (!boundary.overlaps(hit)) return const [];
+    return <T>[
+      // Check objects in the current node.
+      for (final object in objects)
+        if (object.overlaps(hit)) object,
 
-    if (!boundary.overlaps(queryRect)) return found;
-
-    // Check objects in the current node.
-    for (final object in objects) {
-      if (object.overlapsRect(
-        left: queryRect.left,
-        top: queryRect.top,
-        right: queryRect.right,
-        bottom: queryRect.bottom,
-      )) found.add(object);
-    }
-
-    // If subdivided, recurse into children.
-    if (_subdivided) {
-      found
-        ..addAll(_northWest!.query(queryRect))
-        ..addAll(_northEast!.query(queryRect))
-        ..addAll(_southWest!.query(queryRect))
-        ..addAll(_southEast!.query(queryRect));
-    }
-
-    return found;
+      // If subdivided, recurse into children.
+      ...?_northWest?.query(hit),
+      ...?_northEast?.query(hit),
+      ...?_southWest?.query(hit),
+      ...?_southEast?.query(hit),
+    ];
   }
 
   /*
@@ -304,26 +290,45 @@ class QuadTree<T extends HitBox> {
     final y = boundary.top;
 
     _northWest = QuadTree<T>(
-      boundary: ui.Rect.fromLTWH(x, y, halfWidth, halfHeight),
+      boundary: HitBox.rect(
+        width: halfWidth,
+        height: halfHeight,
+        x: x,
+        y: y,
+      ),
       capacity: capacity,
       parent: this,
       objectNodeMap: _objectNodeMap,
     );
     _northEast = QuadTree<T>(
-      boundary: ui.Rect.fromLTWH(x + halfWidth, y, halfWidth, halfHeight),
+      boundary: HitBox.rect(
+        width: halfWidth,
+        height: halfHeight,
+        x: x + halfWidth,
+        y: y,
+      ),
       capacity: capacity,
       parent: this,
       objectNodeMap: _objectNodeMap,
     );
     _southWest = QuadTree<T>(
-      boundary: ui.Rect.fromLTWH(x, y + halfHeight, halfWidth, halfHeight),
+      boundary: HitBox.rect(
+        width: halfWidth,
+        height: halfHeight,
+        x: x,
+        y: y + halfHeight,
+      ),
       capacity: capacity,
       parent: this,
       objectNodeMap: _objectNodeMap,
     );
     _southEast = QuadTree<T>(
-      boundary: ui.Rect.fromLTWH(
-          x + halfWidth, y + halfHeight, halfWidth, halfHeight),
+      boundary: HitBox.rect(
+        width: halfWidth,
+        height: halfHeight,
+        x: x + halfWidth,
+        y: y + halfHeight,
+      ),
       capacity: capacity,
       parent: this,
       objectNodeMap: _objectNodeMap,
@@ -334,16 +339,18 @@ class QuadTree<T extends HitBox> {
   // UTILS
   // --------------------------------------------------------------------------
 
-  /// Checks if [object] overlaps [rectBoundary] by coordinate checks
+  /// Checks if [object] overlaps [boundary] by coordinate checks
   /// (no new Rect).
-  bool _overlapsBoundary(T object, ui.Rect rectBoundary) {
-    final objectRight = object.x + object.width;
+  bool _overlapsBoundary(T object, HitBox boundary) {
+    /* final objectRight = object.x + object.width;
     final objectBottom = object.y + object.height;
-    final boundaryRight = rectBoundary.left + rectBoundary.width;
-    final boundaryBottom = rectBoundary.top + rectBoundary.height;
+    final boundaryRight = boundary.left + boundary.width;
+    final boundaryBottom = boundary.top + boundary.height;
     return object.x < boundaryRight &&
-        objectRight > rectBoundary.left &&
+        objectRight > boundary.left &&
         object.y < boundaryBottom &&
-        objectBottom > rectBoundary.top;
+        objectBottom > boundary.top; */
+
+    return object.overlaps(boundary);
   }
 }

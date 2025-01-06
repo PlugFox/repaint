@@ -10,32 +10,34 @@ import 'package:vector_math/vector_math_64.dart' show Vector2;
 void main() => group(
       'QuadTree benchmark',
       () {
-        test('Inserts', () {
-          final a = _RePaintQuadTreeInsertsBenchmark();
-          //a.report();
-          final b = _FlameQuadTreeInsertsBenchmark();
-          //b.report();
-          expect(a.measure(), lessThanOrEqualTo(b.measure()));
+        test('Inserts and removes', () {
+          final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
+          //repaint.report();
+          final flame = _FlameQuadTreeInsertsAndRemovesBenchmark();
+          //flame.report();
+          expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
         });
 
         test('Static query', () {
-          final a = _RePaintQuadTreeQueryBenchmark();
-          a.report();
-          final b = _FlameQuadTreeQueryBenchmark();
-          b.report();
+          final repaint = _RePaintQuadTreeQueryBenchmark();
+          //repaint.report();
+          final flame = _FlameQuadTreeQueryBenchmark();
+          //flame.report();
+          expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
         });
       },
     );
 
-class _RePaintQuadTreeInsertsBenchmark extends BenchmarkBase {
-  _RePaintQuadTreeInsertsBenchmark() : super('RePaint QuadTree inserts');
+class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeInsertsAndRemovesBenchmark()
+      : super('RePaint QuadTree inserts & removes');
 
   late QuadTree qt;
 
   @override
   void setup() {
     qt = QuadTree(
-      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
+      boundary: HitBox.square(size: 1000),
       capacity: 25,
     );
     super.setup();
@@ -43,21 +45,20 @@ class _RePaintQuadTreeInsertsBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    for (var i = 0; i < 100; i++)
-      qt.insert(
-        HitBox.rect(
-          width: 10,
-          height: 10,
-          x: i * 10.0,
-          y: i * 10.0,
-        ),
-      );
+    final queue = Queue<HitBox>();
+    for (var i = 0; i < 100; i++) {
+      final box = HitBox.square(size: 10, x: i * 10.0, y: i * 10.0);
+      queue.add(box);
+      qt.insert(box);
+    }
+    while (queue.isNotEmpty) qt.remove(queue.removeFirst());
     qt.clear();
   }
 }
 
-class _FlameQuadTreeInsertsBenchmark extends BenchmarkBase {
-  _FlameQuadTreeInsertsBenchmark() : super('Flame QuadTree inserts');
+class _FlameQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
+  _FlameQuadTreeInsertsAndRemovesBenchmark()
+      : super('Flame QuadTree inserts & removes');
 
   static final Vector2 _size = Vector2.all(10);
   late flame.QuadTree qt;
@@ -74,13 +75,16 @@ class _FlameQuadTreeInsertsBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    for (var i = 0; i < 100; i++)
-      qt.add(
-        flame.RectangleHitbox(
-          size: _size,
-          position: Vector2(i * 10.0, i * 10.0),
-        ),
+    final queue = Queue<flame.RectangleHitbox>();
+    for (var i = 0; i < 100; i++) {
+      final box = flame.RectangleHitbox(
+        size: _size,
+        position: Vector2(i * 10.0, i * 10.0),
       );
+      queue.add(box);
+      qt.add(box);
+    }
+    while (queue.isNotEmpty) qt.remove(queue.removeFirst());
     qt.clear();
   }
 }
@@ -89,11 +93,12 @@ class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
   _RePaintQuadTreeQueryBenchmark() : super('RePaint QuadTree query');
 
   late QuadTree qt;
+  static final camera = HitBox.square(size: 500, x: 250, y: 250);
 
   @override
   void setup() {
     qt = QuadTree(
-      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
+      boundary: HitBox.square(size: 1000),
       capacity: 25,
     );
     for (var i = 0; i < 100; i++)
@@ -110,10 +115,10 @@ class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    final results = Queue<HitBox>();
-    const view = ui.Rect.fromLTWH(250, 250, 500, 500);
-    for (var i = 0; i < 100; i++) results.addAll(qt.query(view));
-    if (results.isEmpty) throw Exception('No results');
+    List<HitBox>? results;
+    for (var i = 0; i < 100; i++) results = qt.query(camera);
+    if (results == null || results.length < 40)
+      throw Exception('Not enough results');
   }
 }
 
@@ -121,10 +126,8 @@ class _FlameQuadTreeQueryBenchmark extends BenchmarkBase {
   _FlameQuadTreeQueryBenchmark() : super('Flame QuadTree query');
 
   late flame.QuadTree qt;
-  static final flame.RectangleHitbox camera = flame.RectangleHitbox(
-    size: Vector2.all(500),
-    position: Vector2.all(250),
-  );
+  static final camera =
+      flame.RectangleHitbox(size: Vector2.all(500), position: Vector2.all(250));
 
   @override
   void setup() {
@@ -143,13 +146,22 @@ class _FlameQuadTreeQueryBenchmark extends BenchmarkBase {
       );
     // Add camera bounds
     qt.add(camera);
+    camera.aabb;
     super.setup();
   }
 
   @override
   void run() {
-    final results = Queue<List<Object>>();
-    for (var i = 0; i < 100; i++) results.addAll(qt.query(camera).values);
-    if (results.isEmpty) throw Exception('No results');
+    List<Object>? results;
+    for (var i = 0; i < 100; i++)
+      results = qt
+          .query(camera)
+          .entries
+          .single
+          .value
+          .where((box) => box.aabb.intersectsWithAabb2(camera.aabb))
+          .toList(growable: false);
+    if (results == null || results.length < 40)
+      throw Exception('Not enough results');
   }
 }
