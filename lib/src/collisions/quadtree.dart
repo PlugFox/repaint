@@ -235,10 +235,11 @@ final class QuadTree {
 
   /// Get rectangle bounds of the object with the given [id].
   ui.Rect get(int id) {
+    if (id < 1 || id >= _nextId || id >= _id2node.length)
+      throw ArgumentError('Object with id $id not found.');
     final node = _nodes[_id2node[id]];
     if (node == null) throw ArgumentError('Object with id $id not found.');
-    final length = node._idsView.length;
-    for (var i = 0; i < length; i += 5) {
+    for (var i = 0; i < _nodeSize; i += 5) {
       if (node._idsView[i] != id) continue;
       return ui.Rect.fromLTWH(
         node._objectsView[i + 3], // left (x)
