@@ -13,8 +13,9 @@ void main() => group(
         var report = true;
 
         /*
-          RePaint QuadTree inserts batch(RunTime): 820.265 us.
-          RePaint QuadTree inserts batch v2(RunTime): 164.9196479973682 us.
+          RePaint QuadTree inserts batch v2(RunTime): 203.8953488372093 us.
+          RePaint QuadTree inserts batch(RunTime): 826.96425 us.
+          Flame QuadTree inserts(RunTime): 30063.956521739132 us.
         */
         test('Inserts', () {
           final repaintBatchV2 = _RePaintQuadTreeInsertsBatchV2Benchmark();

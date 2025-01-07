@@ -15,7 +15,7 @@ final class QuadTree {
   }) {
     assert(boundary.isFinite, 'The boundary must be finite.');
     assert(!boundary.isEmpty, 'The boundary must not be empty.');
-    assert(capacity > 0, 'The capacity must be greater than 0.');
+    assert(capacity > 8, 'The capacity must be greater than 8.');
     final nodeSize = capacity * 5;
     const reserved = 64;
     final nodes = List<QuadTree$Node?>.filled(reserved, null, growable: false);
@@ -100,6 +100,10 @@ final class QuadTree {
   /// Recycled nodes in this manager.
   Uint32List _recycledNodes;
 
+  /// Number of active objects in the QuadTree.
+  int get length => _length;
+  int _length = 0;
+
   /// List of objects in the QuadTree.
   ///
   /// Each object is stored in a contiguous block of memory.
@@ -132,6 +136,7 @@ final class QuadTree {
   int _recycledIdsCount = 0;
 
   /// References between ids and nodes.
+  /// Index is the id and value is the node id.
   Uint32List _id2node;
 
   /// Recycled ids in this manager array.
@@ -220,10 +225,29 @@ final class QuadTree {
     // Find the node to insert the object
     final id = root._insert(rect);
 
-    // TODO(plugfox): Increase the number of objects in the tree
-    // Mike Matiunin <plugfox@gmail.com>, 07 January 2025
+    if (id != null) {
+      // Object was inserted successfully
+      _length++;
+    }
 
     return id;
+  }
+
+  /// Get rectangle bounds of the object with the given [id].
+  ui.Rect get(int id) {
+    final node = _nodes[_id2node[id]];
+    if (node == null) throw ArgumentError('Object with id $id not found.');
+    final length = node._idsView.length;
+    for (var i = 0; i < length; i += 5) {
+      if (node._idsView[i] != id) continue;
+      return ui.Rect.fromLTWH(
+        node._objectsView[i + 3], // left (x)
+        node._objectsView[i + 4], // top (y)
+        node._objectsView[i + 1], // width
+        node._objectsView[i + 2], // height
+      );
+    }
+    throw ArgumentError('Object with id $id not found.');
   }
 
   /// Clears the QuadTree and resets all properties.
@@ -236,6 +260,7 @@ final class QuadTree {
     _root = null;
 
     // Clear objects
+    _length = 0;
     _objects = Float32List(64 * _nodeSize);
     _idsView = Uint32List.sublistView(_objects);
 
@@ -398,8 +423,14 @@ class QuadTree$Node {
   int _objectsCount;
 
   /// Whether this node has been subdivided.
+  /// A subdivided node has four child nodes (quadrants)
+  /// and can not directly store objects.
   bool get subdivided => _subdivided;
   bool _subdivided;
+
+  /// Whether this node is a leaf node.
+  /// A leaf node is a node that has not been subdivided and can store objects.
+  bool get leaf => !_subdivided;
 
   /// Child nodes (quadrants).
   QuadTree$Node? _northWest;
@@ -473,7 +504,7 @@ class QuadTree$Node {
     final halfHeight = boundary.height / 2;
     final left = boundary.left;
     final top = boundary.top;
-    _northWest = tree._createNode(
+    final nw = _northWest = tree._createNode(
       parent: this,
       boundary: ui.Rect.fromLTWH(
         left,
@@ -482,7 +513,7 @@ class QuadTree$Node {
         halfHeight,
       ),
     );
-    _northEast = tree._createNode(
+    final ne = _northEast = tree._createNode(
       parent: this,
       boundary: ui.Rect.fromLTWH(
         left + halfWidth,
@@ -491,7 +522,7 @@ class QuadTree$Node {
         halfHeight,
       ),
     );
-    _southWest = tree._createNode(
+    final sw = _southWest = tree._createNode(
       parent: this,
       boundary: ui.Rect.fromLTWH(
         left,
@@ -500,7 +531,7 @@ class QuadTree$Node {
         halfHeight,
       ),
     );
-    _southEast = tree._createNode(
+    final se = _southEast = tree._createNode(
       parent: this,
       boundary: ui.Rect.fromLTWH(
         left + halfWidth,
@@ -510,28 +541,54 @@ class QuadTree$Node {
       ),
     );
 
-    // TODO(plugfox): Fill nodes with parent objects
-    // Clear current node
-    // Mike Matiunin <plugfox@gmail.com>, 07 January 2025
+    final length = _idsView.length;
+    for (var i = 0; i < length; i += 5) {
+      final id = _idsView[i]; // id
+      if (id == 0) continue; // If slot is empty, skip it.
+
+      // Get object's data from the current objects array.
+      final width = _objectsView[i + 1];
+      final height = _objectsView[i + 2];
+      final left = _objectsView[i + 3];
+      final top = _objectsView[i + 4];
+
+      final rectCenterX = left + width / 2.0;
+      final rectCenterY = top + height / 2.0;
+
+      final QuadTree$Node node;
+      if (_southWest!.boundary.top > rectCenterY) {
+        if (_northWest!.boundary.left < rectCenterX) {
+          node = nw; // North-West
+        } else {
+          node = ne; // North-East
+        }
+      } else {
+        if (_southWest!.boundary.left < rectCenterX) {
+          node = sw; // South-West
+        } else {
+          node = se; // South-East
+        }
+      }
+
+      // Migrate object's data to the new nested node:
+      node
+        .._idsView[i + 0] = id
+        .._objectsView[i + 1] = width
+        .._objectsView[i + 2] = height
+        .._objectsView[i + 3] = left
+        .._objectsView[i + 4] = top;
+      node._objectsCount++;
+      tree._id2node[id] = node.id;
+    }
+    _idsView.fillRange(0, length, 0); // Clear ids
+    _objectsView.fillRange(0, length, 0); // Clear objects
+    _objectsCount = 0;
   }
 }
 
 // --------------------------------------------------------------------------
 // UTILS
 // --------------------------------------------------------------------------
-
-/* @pragma('vm:prefer-inline')
-bool _overlapsBoundary({
-  required ui.Rect boundary,
-  required double width,
-  required double height,
-  required double left,
-  required double top,
-}) =>
-    left < boundary.right &&
-    left + width > boundary.left &&
-    top < boundary.bottom &&
-    top + height > boundary.top; */
 
 /// Checks if rectangles [a] and [b] overlap by coordinate checks.
 @pragma('vm:prefer-inline')
