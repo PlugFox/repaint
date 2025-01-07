@@ -2,6 +2,8 @@ import 'dart:collection';
 import 'dart:typed_data';
 import 'dart:ui' as ui show Rect;
 
+import 'package:meta/meta.dart';
+
 /// {@template quadtree}
 /// A Quadtree data structure that subdivides a 2D space into four quadrants
 /// to speed up collision detection and spatial queries.
@@ -16,7 +18,7 @@ final class QuadTree {
   }) {
     assert(boundary.isFinite, 'The boundary must be finite.');
     assert(!boundary.isEmpty, 'The boundary must not be empty.');
-    assert(capacity > 8, 'The capacity must be greater than 8.');
+    assert(capacity >= 4, 'The capacity must be greater or equal than 4.');
     final nodeSize = capacity * 5;
     const reserved = 64;
     final nodes = List<QuadTree$Node?>.filled(reserved, null, growable: false);
@@ -93,6 +95,8 @@ final class QuadTree {
   int get nodesCount => _nodesCount - _recycledNodesCount;
 
   /// List of nodes in the QuadTree.
+  /// Each index in the list is the identifier of the node:
+  /// `list[id] == node.id`
   List<QuadTree$Node?> _nodes;
 
   /// Recycled objects in this manager.
@@ -210,6 +214,10 @@ final class QuadTree {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // INSERTION, REMOVAL, QUERY
+  // --------------------------------------------------------------------------
+
   /// Insert an rectangle into the QuadTree.
   /// Returns the identifier of the object in the QuadTree.
   /// Returns null if the object does not fit in the QuadTree.
@@ -308,6 +316,27 @@ final class QuadTree {
   }
 
   // --------------------------------------------------------------------------
+  // VISITORS AND ITTERATORS
+  // --------------------------------------------------------------------------
+
+  /// Visit all nodes in the QuadTree.
+  void visit(void Function(QuadTree$Node node) visitor) {
+    final root = _root;
+    if (root == null) return;
+    final queue = Queue<QuadTree$Node>()..add(root);
+    while (queue.isNotEmpty) {
+      final node = queue.removeFirst();
+      visitor(node);
+      if (node.leaf) continue;
+      queue
+        ..add(node._northWest!)
+        ..add(node._northEast!)
+        ..add(node._southWest!)
+        ..add(node._southEast!);
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // OPTIMIZATION (MERGING)
   // --------------------------------------------------------------------------
 
@@ -353,7 +382,6 @@ final class QuadTree {
         ..add(node._northEast!)
         ..add(node._southWest!)
         ..add(node._southEast!);
-
       while (toMerge.isNotEmpty) {
         final child = toMerge.removeFirst();
         if (child._subdivided) {
@@ -379,8 +407,24 @@ final class QuadTree {
               ..[offset + 4] = dataToMerge[i + 4];
             offset += 5;
             count++;
+
+            // Link the object id to the parent node
+            _id2node[id] = node.id;
           }
         }
+
+        // Remove this node from the QuadTree and add it to the recycled nodes
+        child
+          .._length = 0
+          .._objectsCount = 0
+          .._objectsView.fillRange(0, _nodeSize, 0)
+          .._subdivided = false
+          .._northWest = null
+          .._northEast = null
+          .._southWest = null
+          .._southEast = null;
+        _nodes[child.id] = null;
+        _recycledNodes[_recycledNodesCount++] = child.id;
       }
 
       // Reset the node to a leaf node with the merged objects
@@ -395,6 +439,78 @@ final class QuadTree {
 
       assert(count == node.length, 'Invalid count of objects after merging.');
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // TESTING, DEBUG AND HEALTHCHECKS
+  // --------------------------------------------------------------------------
+
+  /// Health check for the QuadTree node.
+  /// Returns a list of problems found in the QuadTree.
+  ///
+  /// Main purpose is to check if the QuadTree is in a valid state.
+  /// You should not rely on this method for production code as it is slow and
+  /// not optimized for performance critical code.
+  /// Better to use this method for debugging and testing.
+  ///
+  /// Should be called only after [optimize] method.
+  @visibleForTesting
+  List<String> healthCheck() {
+    final errors = <String>[];
+    if (capacity < 4) errors.add('Capacity must be greater or equal than 4.');
+    final nodeIds = <int>{};
+    //final objects = <int>{};
+    visit((node) {
+      if (nodeIds.contains(node.id))
+        errors.add('Node #${node.id} is visited more than once or duplicated.');
+      nodeIds.add(node.id);
+      if (identical(_nodes[node.id], node))
+        errors.add('Node #${node.id} is not stored in the nodes array.');
+      if (node._dirty) {
+        errors.add('Node #${node.id} is dirty (call optimize).');
+      } else if (node.leaf) {
+        if (node._subdivided)
+          errors.add('Leaf node #${node.id} is subdivided.');
+        if (node._objectsCount > capacity)
+          errors.add('Leaf node #${node.id} has too many objects.');
+        if (node._objectsCount != node.length)
+          errors.add('Leaf node #${node.id} has invalid objects count.');
+        if (node._length < 1)
+          errors.add('Leaf node #${node.id} is empty (call optimize).');
+
+        // TODO(plugfox): Check data consistency
+        // Mike Matiunin <plugfox@gmail.com>, 08 January 2025
+
+        var child = node;
+        var parent = node.parent;
+        while (true) {
+          if (parent == null) {
+            if (identical(node, _root))
+              errors.add('Leaf node #${child.id} has no parent.');
+            break; // Root node
+          }
+
+          if (child._length > parent.length)
+            errors.add('Leaf node #${child.id} has more objects than parent.');
+          if (!nodeIds.contains(parent.id))
+            errors.add('Parent node #${parent.id} is not visited.');
+
+          child = parent;
+          parent = parent.parent;
+        }
+      } else {
+        if (!node._subdivided)
+          errors.add('Subdivided node #${node.id} is not subdivided.');
+        if (node._objectsCount != 0)
+          errors.add('Subdivided node #${node.id} has objects.');
+        if (node._length < 1)
+          errors.add('Subdivided node #${node.id} is empty (call optimize).');
+
+        // TODO(plugfox): Check data is empty
+        // Mike Matiunin <plugfox@gmail.com>, 08 January 2025
+      }
+    });
+    return errors;
   }
 
   @override
@@ -487,9 +603,7 @@ class QuadTree$Node {
   /// Try to insert an object into this node.
   int? _insert(ui.Rect rect) {
     // Check if the object fits in the QuadTree.
-    if (!_overlaps(boundary, rect)) {
-      return null;
-    }
+    if (!_overlaps(boundary, rect)) return null;
 
     // Should we insert the object directly into this node?
     if (_objectsCount < capacity && leaf) {
@@ -608,13 +722,13 @@ class QuadTree$Node {
 
       final QuadTree$Node node;
       if (_southWest!.boundary.top > rectCenterY) {
-        if (_northWest!.boundary.left < rectCenterX) {
+        if (_northWest!.boundary.right > rectCenterX) {
           node = nw; // North-West
         } else {
           node = ne; // North-East
         }
       } else {
-        if (_southWest!.boundary.left < rectCenterX) {
+        if (_southWest!.boundary.right > rectCenterX) {
           node = sw; // South-West
         } else {
           node = se; // South-East

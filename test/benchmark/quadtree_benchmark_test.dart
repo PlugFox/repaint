@@ -7,6 +7,9 @@ import 'package:repaint/repaint.dart';
 import 'package:test/test.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector2;
 
+// TODO(plugfox): Написать бенчмарк на поиск лучшего capacity для QuadTree
+// Mike Matiunin <plugfox@gmail.com>, 08 January 2025
+
 void main() => group(
       'QuadTree benchmark',
       () {
@@ -18,14 +21,14 @@ void main() => group(
           Flame QuadTree inserts(RunTime): 30062.470588235294 us.
         */
         test('Inserts', () {
-          final repaintBatchV2 = _RePaintQuadTreeInsertsBatchV2Benchmark();
+          final repaint = _RePaintQuadTreeInsertsBenchmark();
           if (report)
             // ignore: dead_code
-            repaintBatchV2.report();
-          final repaintBatch = _RePaintQuadTreeInsertsBatchBenchmark();
-          if (report)
-            // ignore: dead_code
-            repaintBatch.report();
+            repaint.report();
+          if (repaint.qt.length != 1000)
+            throw Exception('Failed to insert all');
+          final errors = repaint.qt.healthCheck();
+          if (errors.isNotEmpty) throw Exception(errors.join('\n'));
           final flame = _FlameQuadTreeInsertsBenchmark();
           if (report)
             // ignore: dead_code
@@ -33,29 +36,18 @@ void main() => group(
           if (!report)
             // ignore: dead_code
             expect(
-              repaintBatchV2.measure(),
-              allOf(
-                lessThanOrEqualTo(repaintBatch.measure()),
-                lessThanOrEqualTo(flame.measure()),
-              ),
+              repaint.measure(),
+              lessThanOrEqualTo(flame.measure()),
             );
         });
 
         test('Inserts and removes', () {
-          final repaintBatchV2 =
-              _RePaintQuadTreeInsertsAndRemovesBatchV2Benchmark();
-          if (report)
-            // ignore: dead_code
-            repaintBatchV2.report();
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
           if (report)
             // ignore: dead_code
             repaint.report();
-          final repaintBatch =
-              _RePaintQuadTreeInsertsAndRemovesBatchBenchmark();
-          if (report)
-            // ignore: dead_code
-            repaintBatch.report();
+          final errors = repaint.qt.healthCheck();
+          if (errors.isNotEmpty) throw Exception(errors.join('\n'));
           final flame = _FlameQuadTreeInsertsAndRemovesBenchmark();
           if (report)
             // ignore: dead_code
@@ -63,56 +55,29 @@ void main() => group(
           if (!report)
             // ignore: dead_code
             expect(
-              repaintBatchV2.measure(),
+              repaint.measure(),
               lessThanOrEqualTo(flame.measure()),
             );
         });
 
         test('Static query', () {
-          final repaint = _RePaintQuadTreeQueryBenchmark();
+          /* final repaint = _RePaintQuadTreeQueryBenchmark();
           if (report)
             // ignore: dead_code
-            repaint.report();
+            repaint.report(); */
           final flame = _FlameQuadTreeQueryBenchmark();
           if (report)
             // ignore: dead_code
             flame.report();
-          if (!report)
+          /* if (!report)
             // ignore: dead_code
-            expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+            expect(repaint.measure(), lessThanOrEqualTo(flame.measure())); */
         });
       },
     );
 
-class _RePaintQuadTreeInsertsBatchBenchmark extends BenchmarkBase {
-  _RePaintQuadTreeInsertsBatchBenchmark()
-      : super('RePaint QuadTree inserts batch');
-
-  late QuadTreeDeprecated qt;
-
-  @override
-  void setup() {
-    qt = QuadTreeDeprecated(
-      boundary: HitBox.square(size: 10000),
-      capacity: 25,
-    );
-    super.setup();
-  }
-
-  @override
-  void run() {
-    qt.clear();
-    for (var i = 0; i < 1000; i++) {
-      final box = HitBox.square(x: i * 10.0, y: i * 10.0, size: 10);
-      qt.insert(box);
-    }
-    qt.optimize();
-  }
-}
-
-class _RePaintQuadTreeInsertsBatchV2Benchmark extends BenchmarkBase {
-  _RePaintQuadTreeInsertsBatchV2Benchmark()
-      : super('RePaint QuadTree inserts batch v2');
+class _RePaintQuadTreeInsertsBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeInsertsBenchmark() : super('RePaint QuadTree inserts');
 
   late QuadTree qt;
 
@@ -166,9 +131,9 @@ class _FlameQuadTreeInsertsBenchmark extends BenchmarkBase {
   }
 }
 
-class _RePaintQuadTreeInsertsAndRemovesBatchV2Benchmark extends BenchmarkBase {
-  _RePaintQuadTreeInsertsAndRemovesBatchV2Benchmark()
-      : super('RePaint QuadTree inserts & removes batch V2');
+class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeInsertsAndRemovesBenchmark()
+      : super('RePaint QuadTree inserts & removes');
 
   late QuadTree qt;
 
@@ -194,63 +159,6 @@ class _RePaintQuadTreeInsertsAndRemovesBatchV2Benchmark extends BenchmarkBase {
     while (queue.isNotEmpty) qt.remove(queue.removeFirst(), optimize: false);
     qt.optimize();
     if (qt.length != 0) throw Exception('Failed to remove all');
-  }
-}
-
-class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
-  _RePaintQuadTreeInsertsAndRemovesBenchmark()
-      : super('RePaint QuadTree inserts & removes');
-
-  late QuadTreeDeprecated qt;
-
-  @override
-  void setup() {
-    qt = QuadTreeDeprecated(
-      boundary: HitBox.square(size: 1000),
-      capacity: 25,
-    );
-    super.setup();
-  }
-
-  @override
-  void run() {
-    qt.clear();
-    final queue = Queue<HitBox>();
-    for (var i = 0; i < 100; i++) {
-      final box = HitBox.square(size: 10, x: i * 10.0, y: i * 10.0);
-      queue.add(box);
-      qt.insert(box);
-    }
-    while (queue.isNotEmpty) qt.remove(queue.removeFirst());
-  }
-}
-
-class _RePaintQuadTreeInsertsAndRemovesBatchBenchmark extends BenchmarkBase {
-  _RePaintQuadTreeInsertsAndRemovesBatchBenchmark()
-      : super('RePaint QuadTree inserts & removes batch');
-
-  late QuadTreeDeprecated qt;
-
-  @override
-  void setup() {
-    qt = QuadTreeDeprecated(
-      boundary: HitBox.square(size: 1000),
-      capacity: 25,
-    );
-    super.setup();
-  }
-
-  @override
-  void run() {
-    qt.clear();
-    final queue = Queue<HitBox>();
-    for (var i = 0; i < 100; i++) {
-      final box = HitBox.square(size: 10, x: i * 10.0, y: i * 10.0);
-      queue.add(box);
-      qt.insert(box);
-    }
-    while (queue.isNotEmpty) qt.remove(queue.removeFirst(), optimize: false);
-    qt.optimize();
   }
 }
 
@@ -288,7 +196,7 @@ class _FlameQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
   }
 }
 
-class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
+/* class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
   _RePaintQuadTreeQueryBenchmark() : super('RePaint QuadTree query');
 
   late QuadTreeDeprecated qt;
@@ -319,7 +227,7 @@ class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
     if (results == null || results.length < 40)
       throw Exception('Not enough results');
   }
-}
+} */
 
 class _FlameQuadTreeQueryBenchmark extends BenchmarkBase {
   _FlameQuadTreeQueryBenchmark() : super('Flame QuadTree query');

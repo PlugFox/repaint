@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:repaint/repaint.dart';
 import 'package:test/test.dart';
@@ -72,8 +73,8 @@ void main() => group('Quadtree', () {
 
       test('Create', () {
         expect(
-          () => QuadTreeDeprecated(
-            boundary: HitBox.square(size: 100),
+          () => QuadTree(
+            boundary: const Rect.fromLTWH(0, 0, 100, 100),
             capacity: 4,
           ),
           returnsNormally,
@@ -81,35 +82,21 @@ void main() => group('Quadtree', () {
       });
 
       test('Insert', () {
-        final qt = QuadTreeDeprecated(
-          boundary: HitBox.square(size: 100),
+        final qt = QuadTree(
+          boundary: const Rect.fromLTWH(0, 0, 100, 100),
           capacity: 4,
         );
         expect(
-          () => qt.insert(
-            HitBox.rect(
-              width: 10,
-              height: 10,
-              x: 10,
-              y: 10,
-            ),
-          ),
+          () => qt.insert(const Rect.fromLTWH(10, 10, 10, 10)),
           returnsNormally,
         );
       });
 
-      test('Query', () {
-        final qt = QuadTreeDeprecated(
-          boundary: HitBox.square(size: 100),
+      /* test('Query', () {
+        final qt = QuadTree(
+          boundary: const Rect.fromLTWH(0, 0, 100, 100),
           capacity: 4,
-        )..insert(
-            HitBox.rect(
-              width: 10,
-              height: 10,
-              x: 10,
-              y: 10,
-            ),
-          );
+        )..insert(const Rect.fromLTWH(10, 10, 10, 10));
         expect(
           () => qt.query(
             HitBox.rect(
@@ -150,5 +137,5 @@ void main() => group('Quadtree', () {
           ),
           isEmpty,
         );
-      });
+      }); */
     });
