@@ -16,9 +16,8 @@ void main() => group(
         var report = true;
 
         /*
-          RePaint QuadTree inserts batch v2(RunTime): 220.1505207750028 us.
-          RePaint QuadTree inserts batch(RunTime): 818.77475 us.
-          Flame QuadTree inserts(RunTime): 30062.470588235294 us.
+          RePaint QuadTree inserts(RunTime): 1312.946 us.
+          Flame QuadTree inserts(RunTime): 30701.432835820895 us.
         */
         test('Inserts', () {
           final repaint = _RePaintQuadTreeInsertsBenchmark();
@@ -41,6 +40,10 @@ void main() => group(
             );
         });
 
+        /*
+          RePaint QuadTree inserts & removes(RunTime): 133.5937792017087 us.
+          Flame QuadTree inserts & removes(RunTime): 2411.84125 us.
+        */
         test('Inserts and removes', () {
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
           if (report)
@@ -155,7 +158,7 @@ class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
       final id = qt.insert(box);
       queue.add(id!);
     }
-    //if (qt.length != 100) throw Exception('Failed to insert all');
+    if (qt.length != 100) throw Exception('Failed to insert all');
     while (queue.isNotEmpty) qt.remove(queue.removeFirst(), optimize: false);
     qt.optimize();
     if (qt.length != 0) throw Exception('Failed to remove all');

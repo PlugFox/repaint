@@ -464,7 +464,7 @@ final class QuadTree {
       if (nodeIds.contains(node.id))
         errors.add('Node #${node.id} is visited more than once or duplicated.');
       nodeIds.add(node.id);
-      if (identical(_nodes[node.id], node))
+      if (!identical(_nodes[node.id], node))
         errors.add('Node #${node.id} is not stored in the nodes array.');
       if (node._dirty) {
         errors.add('Node #${node.id} is dirty (call optimize).');
@@ -475,8 +475,6 @@ final class QuadTree {
           errors.add('Leaf node #${node.id} has too many objects.');
         if (node._objectsCount != node.length)
           errors.add('Leaf node #${node.id} has invalid objects count.');
-        if (node._length < 1)
-          errors.add('Leaf node #${node.id} is empty (call optimize).');
 
         // TODO(plugfox): Check data consistency
         // Mike Matiunin <plugfox@gmail.com>, 08 January 2025
@@ -485,7 +483,7 @@ final class QuadTree {
         var parent = node.parent;
         while (true) {
           if (parent == null) {
-            if (identical(node, _root))
+            if (!identical(child, _root))
               errors.add('Leaf node #${child.id} has no parent.');
             break; // Root node
           }
