@@ -6,11 +6,13 @@ import 'hitbox.dart';
 /// A Quadtree data structure that subdivides a 2D space into four quadrants
 /// to speed up collision detection and spatial queries.
 ///
-/// Now supports:
 /// - insertion [insert]
 /// - removal of a single object [remove]
 /// - moving objects within the tree [move]
 /// - node merging/optimization [optimize]
+/// - querying objects within a rectangular region [query]
+/// - retrieving all objects in the tree [entries]
+/// - visiting all objects in the tree [visit]
 /// {@endtemplate}
 class QuadTree<T extends HitBox> {
   /// Creates a new Quadtree with [boundary] and a [capacity].
