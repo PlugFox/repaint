@@ -27,7 +27,7 @@ void main() => group(
           if (repaint.qt.length != 1000)
             throw Exception('Failed to insert all');
           final errors = repaint.qt.healthCheck();
-          if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
           expect(errors, isEmpty);
           final flame = _FlameQuadTreeInsertsBenchmark();
           if (report)
@@ -51,7 +51,7 @@ void main() => group(
             // ignore: dead_code
             repaint.report();
           final errors = repaint.qt.healthCheck();
-          if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
           expect(errors, isEmpty);
           final flame = _FlameQuadTreeInsertsAndRemovesBenchmark();
           if (report)
@@ -65,12 +65,40 @@ void main() => group(
             );
         });
 
+        /*
+          RePaint QuadTree query(RunTime): 800.08575 us.
+          Flame QuadTree query(RunTime): 2261.023 us.
+        */
         test('Static query', () {
           final repaint = _RePaintQuadTreeQueryBenchmark();
           if (report)
             // ignore: dead_code
             repaint.report();
+          final errors = repaint.qt.healthCheck();
+          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+          expect(errors, isEmpty);
           final flame = _FlameQuadTreeQueryBenchmark();
+          if (report)
+            // ignore: dead_code
+            flame.report();
+          if (!report)
+            // ignore: dead_code
+            expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+        });
+
+        /*
+          RePaint QuadTree move(RunTime): 122.40191533487861 us.
+          Flame QuadTree move(RunTime): 286.3479948253558 us.
+        */
+        test('Move', () {
+          final repaint = _RePaintQuadTreeMoveBenchmark();
+          if (report)
+            // ignore: dead_code
+            repaint.report();
+          final errors = repaint.qt.healthCheck();
+          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+          expect(errors, isEmpty);
+          final flame = _FlameQuadTreeMoveBenchmark();
           if (report)
             // ignore: dead_code
             flame.report();
@@ -161,7 +189,7 @@ class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
       queue.add(id!);
     }
     if (qt.length != 100) throw Exception('Failed to insert all');
-    while (queue.isNotEmpty) qt.remove(queue.removeFirst(), optimize: false);
+    while (queue.isNotEmpty) qt.remove(queue.removeFirst());
     qt.optimize();
     if (qt.length != 0) throw Exception('Failed to remove all');
   }
@@ -270,5 +298,74 @@ class _FlameQuadTreeQueryBenchmark extends BenchmarkBase {
     // 52 results + camera
     if (results == null || results.length != 53)
       throw Exception('Not enough results');
+  }
+}
+
+class _RePaintQuadTreeMoveBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeMoveBenchmark() : super('RePaint QuadTree move');
+
+  late QuadTree qt;
+
+  @override
+  void setup() {
+    qt = QuadTree(
+      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
+      capacity: 25,
+    );
+    for (var i = 0; i < 100; i++)
+      qt.insert(ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10));
+    super.setup();
+  }
+
+  @override
+  void run() {
+    final id = qt.insert(const ui.Rect.fromLTWH(0, 0, 10, 10));
+    if (id == null) throw Exception('Failed to insert');
+    for (var i = 0; i < 1000; i++) qt.move(id, i.toDouble(), i.toDouble());
+    final pos = qt.get(id);
+    if (pos.left != 999 || pos.top != 999) throw Exception('Failed to move');
+    qt
+      ..remove(id)
+      ..optimize();
+  }
+}
+
+class _FlameQuadTreeMoveBenchmark extends BenchmarkBase {
+  _FlameQuadTreeMoveBenchmark() : super('Flame QuadTree move');
+
+  late flame.QuadTree qt;
+
+  @override
+  void setup() {
+    qt = flame.QuadTree<flame.Hitbox<flame.ShapeHitbox>>(
+      mainBoxSize: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
+      maxObjects: 25,
+      maxDepth: 10,
+    );
+    final size = Vector2.all(10);
+    for (var i = 0; i < 100; i++)
+      qt.add(
+        flame.RectangleHitbox(
+          size: size,
+          position: Vector2(i * 10.0, i * 10.0),
+        ),
+      );
+    super.setup();
+  }
+
+  @override
+  void run() {
+    final rect = flame.RectangleHitbox(
+      size: Vector2.all(10),
+      position: Vector2.zero(),
+    );
+    qt.add(rect);
+    for (var i = 0; i < 1000; i++)
+      rect.position = Vector2(i.toDouble(), i.toDouble());
+    if (qt.hasMoved(rect) != true) throw Exception('Failed to move');
+    //if (pos.left != 999 || pos.top != 999) throw Exception('Failed to move');
+    qt
+      ..remove(rect)
+      ..optimize();
   }
 }

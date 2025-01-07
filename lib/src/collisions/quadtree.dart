@@ -7,6 +7,12 @@ import 'package:meta/meta.dart';
 /// {@template quadtree}
 /// A Quadtree data structure that subdivides a 2D space into four quadrants
 /// to speed up collision detection and spatial queries.
+///
+/// All objects are stored in the leaf nodes of the QuadTree and represented
+/// as rectangles with an identifier.
+/// The QuadTree can store objects with a width, height, and position.
+/// Positions are represented as a point (x, y) in the 2D space at the top-left
+/// corner of the object.
 /// {@endtemplate}
 final class QuadTree {
   /// Creates a new Quadtree with [boundary] and a [capacity].
@@ -313,31 +319,84 @@ final class QuadTree {
     return results;
   }
 
-  /// Removes [id] from the Quadtree if it exists.
-  /// After removal, tries merging nodes upward if possible.
-  void remove(int id, {bool optimize = true}) {
-    if (id < 1 || id >= _nextId || id >= _id2node.length) return;
-    final node = _nodes[_id2node[id]];
-    _id2node[id] = 0; // Clear reference
-    if (node == null) return;
+  /// Move the object with the given [id] to the new position
+  /// [left] (x), [top] (y).
+  ///
+  /// Throws an [ArgumentError] if the object is outside
+  /// the boundary of the QuadTree. You should check if the object
+  /// is outside the boundary before calling this method.
+  void move(int id, double left, double top) {
+    if (id < 1 || id >= _nextId || id >= _id2node.length)
+      throw ArgumentError(
+          'Object #$id not found in the QuadTree. ' 'Id is out of range.');
+
+    final nodeId = _id2node[id];
+    if (nodeId >= _nodes.length)
+      throw ArgumentError(
+          'Object #$id not found in the QuadTree. ' 'Node does not exist.');
+    final node = _nodes[nodeId];
+
+    if (node == null || node.subdivided)
+      throw ArgumentError('Object #$id not found in the QuadTree. '
+          'Node is subdivided or null.');
+
+    var found = false;
     for (var i = 0; i < _nodeSize; i += 5) {
       if (node._idsView[i] != id) continue;
-      node._idsView[i] = 0; // Clear id
-      node._objectsView.fillRange(i, i + 5, 0); // Clear object
-      node._objectsCount--;
+      found = true;
 
-      // Mark the node and all its parents as dirty
-      // and possibly needs optimization.
-      // Also decrease the length of the node and all its parents.
-      for (QuadTree$Node? n = node; n != null; n = n.parent) {
-        n._dirty = true;
-        n._length--;
+      final width = node._objectsView[i + 1];
+      final height = node._objectsView[i + 2];
+
+      /// Check if the object is outside the boundary of the QuadTree.
+      if (!_overlapsLTWH(boundary, left, top, width, height))
+        throw ArgumentError(
+            'Object #$id outside the boundary of the QuadTree.');
+
+      // Check if the object still fits in the same node's boundary.
+      if (_overlapsLTWH(node.boundary, left, top, width, height)) {
+        // The object still fits in the same node's boundary.
+        // Update the object's coordinates.
+        node._objectsView[i + 3] = left;
+        node._objectsView[i + 4] = top;
+      } else {
+        // The object moved outside the boundary of the QuadTree.
+        // Remove the object from the QuadTree and insert it back.
+        // Do not change the object's id.
+        node._remove(id);
+
+        // Insert the object back into the QuadTree at the new position
+        // with the same id.
+        _root!._insert(ui.Rect.fromLTWH(left, top, width, height), id);
       }
-
-      // Decrease the length of the QuadTree
-      _length--;
       break;
     }
+    if (!found)
+      throw ArgumentError('Object #$id not found in the QuadTree. '
+          'Missing object data.');
+  }
+
+  /// Removes [id] from the Quadtree if it exists.
+  /// After removal, tries merging nodes upward if possible.
+  void remove(int id) {
+    if (id < 1 || id >= _nextId || id >= _id2node.length) return;
+    final node = _nodes[_id2node[id]];
+    if (node == null) return;
+
+    // Remove the object directly from the node and mark the node and its
+    // parents as dirty.
+    if (!node._remove(id)) return; // Object not found
+
+    _length--; // Decrease the length of the QuadTree
+    _id2node[id] = 0; // Clear reference to the node
+
+    // Resize recycled ids array if needed
+    if (_recycledIdsCount == _recycledIds.length)
+      _recycledIds = _resizeUint32List(
+        _recycledIds,
+        _recycledIds.length << 1,
+      );
+    _recycledIds[_recycledIdsCount++] = id;
   }
 
   /// Clears the QuadTree and resets all properties.
@@ -470,6 +529,13 @@ final class QuadTree {
           .._southWest = null
           .._southEast = null;
         _nodes[child.id] = null;
+
+        // Resize recycled nodes array if needed
+        if (_recycledNodesCount == _recycledNodes.length)
+          _recycledNodes = _resizeUint32List(
+            _recycledNodes,
+            _recycledNodes.length << 1,
+          );
         _recycledNodes[_recycledNodesCount++] = child.id;
       }
 
@@ -686,15 +752,25 @@ class QuadTree$Node {
   /// other nodes.
   bool _dirty;
 
+  // --------------------------------------------------------------------------
+  // CRUD OPERATIONS
+  // --------------------------------------------------------------------------
+
   /// Try to insert an object into this node.
-  int? _insert(ui.Rect rect) {
+  /// Returns the identifier of the object in the QuadTree.
+  /// Returns null if the object does not fit in the QuadTree.
+  ///
+  /// The [oldId] parameter is optional and should be used for moving objects
+  /// to a new position. That way, the object will keep the same identifier
+  /// between the old and new position.
+  int? _insert(ui.Rect rect, [int? oldId]) {
     // Check if the object fits in the QuadTree.
     if (!_overlaps(boundary, rect)) return null;
 
     // Should we insert the object directly into this node?
     if (_objectsCount < capacity && leaf) {
       // Get next id
-      final id = tree._getNextId();
+      final objectId = oldId ?? tree._getNextId();
 
       // Insert to free slot
       final nodeSize = capacity * 5;
@@ -703,7 +779,7 @@ class QuadTree$Node {
         if (byte != 0) continue; // Skip used slots
 
         // Fill the object data in the entities array
-        _idsView[i + 0] = id;
+        _idsView[i + 0] = objectId;
         _objectsView[i + 1] = rect.width;
         _objectsView[i + 2] = rect.height;
         _objectsView[i + 3] = rect.left;
@@ -714,8 +790,8 @@ class QuadTree$Node {
         for (QuadTree$Node? n = this; n != null; n = n.parent) n._length++;
 
         // Store the reference between the id and the current node.
-        tree._id2node[id] = this.id;
-        return id;
+        tree._id2node[objectId] = id;
+        return objectId;
       }
 
       assert(false, 'Can not insert object into the node, all slots are full.');
@@ -730,17 +806,44 @@ class QuadTree$Node {
 
     if (_southWest!.boundary.top > rectCenterY) {
       if (_northWest!.boundary.right > rectCenterX) {
-        return _northWest!._insert(rect); // North-West
+        return _northWest!._insert(rect, oldId); // North-West
       } else {
-        return _northEast!._insert(rect); // North-East
+        return _northEast!._insert(rect, oldId); // North-East
       }
     } else {
       if (_southWest!.boundary.right > rectCenterX) {
-        return _southWest!._insert(rect); // South-West
+        return _southWest!._insert(rect, oldId); // South-West
       } else {
-        return _southEast!._insert(rect); // South-East
+        return _southEast!._insert(rect, oldId); // South-East
       }
     }
+  }
+
+  /// Remove the object with the given [id] from this node.
+  /// This method should be called only from the QuadTree.
+  /// Because the only QuadTree can free and recycle object ids.
+  ///
+  /// Returns true if the object was removed successfully.
+  /// Returns false if the object was not found in this node.
+  bool _remove(int id) {
+    final nodeSize = capacity * 5;
+    for (var i = 0; i < nodeSize; i += 5) {
+      if (_idsView[i] != id) continue;
+      _idsView[i] = 0; // Clear id
+      _objectsView.fillRange(i, i + 5, 0); // Clear object
+      _objectsCount--;
+
+      // Mark the node and all its parents as dirty
+      // and possibly needs optimization.
+      // Also decrease the length of the node and all its parents.
+      for (QuadTree$Node? n = this; n != null; n = n.parent) {
+        n._dirty = true;
+        n._length--;
+      }
+
+      return true;
+    }
+    return false;
   }
 
   // --------------------------------------------------------------------------
