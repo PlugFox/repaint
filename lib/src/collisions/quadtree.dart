@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:typed_data';
 import 'dart:ui' as ui show Rect;
 
@@ -251,6 +252,40 @@ final class QuadTree {
     throw ArgumentError('Object with id $id not found.');
   }
 
+  // TODO(plugfox):
+  // Get many objects at once
+  // Query
+  // Optimize
+  // Visitors
+  // Mike Matiunin <plugfox@gmail.com>, 07 January 2025
+
+  /// Removes [id] from the Quadtree if it exists.
+  /// After removal, tries merging nodes upward if possible.
+  void remove(int id, {bool optimize = true}) {
+    if (id < 1 || id >= _nextId || id >= _id2node.length) return;
+    final node = _nodes[_id2node[id]];
+    _id2node[id] = 0; // Clear reference
+    if (node == null) return;
+    for (var i = 0; i < _nodeSize; i += 5) {
+      if (node._idsView[i] != id) continue;
+      node._idsView[i] = 0; // Clear id
+      node._objectsView.fillRange(i, i + 5, 0); // Clear object
+      node._objectsCount--;
+
+      // Mark the node and all its parents as dirty
+      // and possibly needs optimization.
+      // Also decrease the length of the node and all its parents.
+      for (QuadTree$Node? n = node; n != null; n = n.parent) {
+        n._dirty = true;
+        n._length--;
+      }
+
+      // Decrease the length of the QuadTree
+      _length--;
+      break;
+    }
+  }
+
   /// Clears the QuadTree and resets all properties.
   void clear() {
     // Clear nodes
@@ -272,102 +307,101 @@ final class QuadTree {
     _recycledIds = Uint32List(64);
   }
 
-  /*
   // --------------------------------------------------------------------------
-  // OBJECTS STORAGE
+  // OPTIMIZATION (MERGING)
   // --------------------------------------------------------------------------
 
-  /// The root node of the QuadTree.
-  QuadTree$Node? _root;
+  /// Call this on the root to try merging all possible child nodes.
+  /// Recursively merges subtrees that have fewer than [capacity]
+  /// objects in total.
+  void optimize() {
+    final root = _root;
+    if (root == null || !root._dirty) return;
 
-  /// Number of active objects in the QuadTree.
-  int get objectsCount => _objectsCount - _recycledObjectsCount;
+    final queue = Queue<QuadTree$Node>()..add(root);
+    late final toMerge = Queue<QuadTree$Node>();
 
-  /// The next identifier for an object in the QuadTree
-  /// and total number of entities in this manager.
-  int _objectsCount;
+    while (queue.isNotEmpty) {
+      final node = queue.removeFirst();
 
-  /// List of objects in the QuadTree.
-  ///
-  /// Each object is stored in a contiguous block of memory.
-  /// The first object starts at index 0, the second object starts at index 5,
-  /// the third object starts at index 10, and so on.
-  ///
-  /// The objects are stored as a Float32List with the following format:
-  /// [id, width, height, x, y]
-  /// - id: The identifier of the object in the QuadTree.
-  /// - width: The width of the object.
-  /// - height: The height of the object.
-  /// - x: The x-coordinate of the object.
-  /// - y: The y-coordinate of the object.
-  ///
-  /// Also this array is splitted by chunks for each node with
-  /// [capacity] objects per node.
-  /// For example with capacity 10
-  /// the second object in the third node will be at index:
-  /// (3 - 1) * capacity * 5 + (2 - 1) * 5 = 84
-  Float32List _objects;
-
-  /// Recycled objects in this manager.
-  int _recycledObjectsCount = 0;
-
-  /// Recycled objects in this manager.
-  Uint32List _recycledObjects;
-
-  /// Get the offset of the entity in the objects list based on its id.
-  @pragma('vm:prefer-inline')
-  int _getEntityOffset(int node, int object) =>
-      node * capacity * 4 + object * 4;
-
-  /// Insert an object into the QuadTree
-  /// with [width], [height], [left] and [top].
-  /// Returns the identifier of the object in the QuadTree.
-  /// Returns null if the object does not fit in the QuadTree.
-  int? insert(ui.Rect rect) {
-    assert(rect.isFinite, 'The rectangle must be finite.');
-
-    /// Check if the object fits in the QuadTree.
-    if (!_overlaps(boundary, rect)) return null;
-
-    // Get the root node of the QuadTree
-    // or create a new one if it does not exist.
-    final root = _root ??= _createNode(
-      parent: null,
-      boundary: boundary,
-    );
-
-    // Find the node to insert the object
-
-    // Get next id
-
-    // TODO(plugfox): Replace it
-    // Mike Matiunin <plugfox@gmail.com>, 07 January 2025
-    final int id;
-    if (_recycledObjectsCount > 0) {
-      // Reuse recycled entity
-      id = _recycledObjects[--_recycledObjectsCount];
-    } else {
-      // Add new entity
-      if (_objectsCount * 4 == _objects.length) {
-        // Resize entities array
-        final newSize = _objectsCount << 1;
-        _objects = _resizeFload32List(_objects, newSize * 4);
+      // Skip if not dirty
+      // Leaf node - nothing to merge, just mark as not dirty
+      if (!node._dirty || node.leaf) {
+        node._dirty = false;
+        continue;
       }
-      id = _objectsCount++; // 0..n
+
+      // If too many objects in the node, skip merging and just check children
+      if (node.length > capacity) {
+        node._dirty = false;
+        queue
+          ..add(node._northWest!)
+          ..add(node._northEast!)
+          ..add(node._southWest!)
+          ..add(node._southEast!);
+        continue;
+      }
+
+      // Get all leaf nodes
+      var count = 0;
+      var offset = 0;
+      final ids = node._idsView;
+      final objects = node._objectsView;
+
+      toMerge
+        ..add(node._northWest!)
+        ..add(node._northEast!)
+        ..add(node._southWest!)
+        ..add(node._southEast!);
+
+      while (toMerge.isNotEmpty) {
+        final child = toMerge.removeFirst();
+        if (child._subdivided) {
+          // Add children to the queue for further merging
+          toMerge
+            ..add(child._northWest!)
+            ..add(child._northEast!)
+            ..add(child._southWest!)
+            ..add(child._southEast!);
+        } else {
+          // Merge the child node with the parent node
+          for (var i = 0; i < _nodeSize; i += 5) {
+            final id = child._idsView[i];
+            if (id == 0) continue; // Skip empty slots
+            final dataToMerge = child._objectsView;
+
+            // Fill the object data in the parent node
+            ids[offset + 0] = id;
+            objects
+              ..[offset + 1] = dataToMerge[i + 1]
+              ..[offset + 2] = dataToMerge[i + 2]
+              ..[offset + 3] = dataToMerge[i + 3]
+              ..[offset + 4] = dataToMerge[i + 4];
+            offset += 5;
+            count++;
+          }
+        }
+      }
+
+      // Reset the node to a leaf node with the merged objects
+      node
+        .._dirty = false
+        .._subdivided = false
+        .._objectsCount = count
+        .._northWest = null
+        .._northEast = null
+        .._southWest = null
+        .._southEast = null;
+
+      assert(count == node.length, 'Invalid count of objects after merging.');
     }
-
-    // Fill the object data in the entities array
-    /* final offset = _getEntityOffset(id);
-    _objects
-      //..[offset + 0] = ? // node
-      ..[offset + 1] = rect.width // width
-      ..[offset + 2] = rect.height // height
-      ..[offset + 3] = rect.left // left (x)
-      ..[offset + 4] = rect.top; // top (y) */
-
-    return id;
   }
- */
+
+  @override
+  String toString() => 'QuadTree{'
+      'nodes: $nodesCount, '
+      'objects: $length'
+      '}';
 }
 
 /// {@template quadtree_node}
@@ -388,8 +422,10 @@ class QuadTree$Node {
   })  : offset = id * capacity * 4,
         _objectsView = objectsView,
         _idsView = idsView,
+        _length = 0,
         _objectsCount = 0,
-        _subdivided = false;
+        _subdivided = false,
+        _dirty = false;
 
   // --------------------------------------------------------------------------
   // PROPERTIES
@@ -420,7 +456,12 @@ class QuadTree$Node {
   /// The ids of the objects stored in this node.
   final Uint32List _idsView;
 
-  /// Number of objects directly stored in this node.
+  /// Number of objects directly stored in this (for leaf node)
+  /// or all nested nodes (for subdivided node).
+  int get length => _length;
+  int _length;
+
+  /// Number of objects stored directly in this node.
   int _objectsCount;
 
   /// Whether this node has been subdivided.
@@ -439,19 +480,25 @@ class QuadTree$Node {
   QuadTree$Node? _southWest;
   QuadTree$Node? _southEast;
 
+  /// Mark this node as dirty and possibly needs optimization to merge with
+  /// other nodes.
+  bool _dirty;
+
   /// Try to insert an object into this node.
   int? _insert(ui.Rect rect) {
     // Check if the object fits in the QuadTree.
-    if (!_overlaps(boundary, rect)) return null;
+    if (!_overlaps(boundary, rect)) {
+      return null;
+    }
 
     // Should we insert the object directly into this node?
-    if (_objectsCount < capacity && !_subdivided) {
+    if (_objectsCount < capacity && leaf) {
       // Get next id
       final id = tree._getNextId();
 
       // Insert to free slot
-      final length = _idsView.length;
-      for (var i = 0; i < length; i += 5) {
+      final nodeSize = capacity * 5;
+      for (var i = 0; i < nodeSize; i += 5) {
         final byte = _idsView[i]; // id
         if (byte != 0) continue; // Skip used slots
 
@@ -462,6 +509,9 @@ class QuadTree$Node {
         _objectsView[i + 3] = rect.left;
         _objectsView[i + 4] = rect.top;
         _objectsCount++;
+
+        // Increase the length of the node and all its parents.
+        for (QuadTree$Node? n = this; n != null; n = n.parent) n._length++;
 
         // Store the reference between the id and the current node.
         tree._id2node[id] = this.id;
@@ -479,13 +529,13 @@ class QuadTree$Node {
     final rectCenterY = rect.top + rect.height / 2.0;
 
     if (_southWest!.boundary.top > rectCenterY) {
-      if (_northWest!.boundary.left < rectCenterX) {
+      if (_northWest!.boundary.right > rectCenterX) {
         return _northWest!._insert(rect); // North-West
       } else {
         return _northEast!._insert(rect); // North-East
       }
     } else {
-      if (_southWest!.boundary.left < rectCenterX) {
+      if (_southWest!.boundary.right > rectCenterX) {
         return _southWest!._insert(rect); // South-West
       } else {
         return _southEast!._insert(rect); // South-East
@@ -542,8 +592,8 @@ class QuadTree$Node {
       ),
     );
 
-    final length = _idsView.length;
-    for (var i = 0; i < length; i += 5) {
+    final nodeSize = capacity * 5;
+    for (var i = 0; i < nodeSize; i += 5) {
       final id = _idsView[i]; // id
       if (id == 0) continue; // If slot is empty, skip it.
 
@@ -578,13 +628,29 @@ class QuadTree$Node {
         .._objectsView[i + 2] = height
         .._objectsView[i + 3] = left
         .._objectsView[i + 4] = top;
+
+      // Increase the objects count of the leaf node.
       node._objectsCount++;
+
+      // Increase the length of the node
+      // Parent length is still the same,
+      // because we are just moving objects to children.
+      node._length++;
+
+      // Store the reference between the id and the current leaf node.
       tree._id2node[id] = node.id;
     }
-    _idsView.fillRange(0, length, 0); // Clear ids
-    _objectsView.fillRange(0, length, 0); // Clear objects
-    _objectsCount = 0;
+    _idsView.fillRange(0, nodeSize, 0); // Clear ids
+    _objectsView.fillRange(0, nodeSize, 0); // Clear objects
+    _objectsCount = 0; // Reset objects count, but `length` is still the same.
   }
+
+  @override
+  String toString() => r'QuadTree$Node{'
+      'id: $id, '
+      'objects: $length, '
+      'subdivided: $_subdivided'
+      '}';
 }
 
 // --------------------------------------------------------------------------
@@ -594,10 +660,10 @@ class QuadTree$Node {
 /// Checks if rectangles [a] and [b] overlap by coordinate checks.
 @pragma('vm:prefer-inline')
 bool _overlaps(ui.Rect a, ui.Rect b) =>
-    a.left < b.right && // this.x < other.right
-    a.right > b.left && // this.right > other.x
-    a.top < b.bottom && // this.y < other.bottom
-    a.bottom > b.top; // this.bottom > other.y
+    a.left <= b.right &&
+    a.right >= b.left &&
+    a.top <= b.bottom &&
+    a.bottom >= b.top;
 
 /// Resizes a Uint32List to [newCapacity].
 @pragma('vm:prefer-inline')

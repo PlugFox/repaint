@@ -13,9 +13,9 @@ void main() => group(
         var report = true;
 
         /*
-          RePaint QuadTree inserts batch v2(RunTime): 203.8953488372093 us.
-          RePaint QuadTree inserts batch(RunTime): 826.96425 us.
-          Flame QuadTree inserts(RunTime): 30063.956521739132 us.
+          RePaint QuadTree inserts batch v2(RunTime): 220.1505207750028 us.
+          RePaint QuadTree inserts batch(RunTime): 818.77475 us.
+          Flame QuadTree inserts(RunTime): 30062.470588235294 us.
         */
         test('Inserts', () {
           final repaintBatchV2 = _RePaintQuadTreeInsertsBatchV2Benchmark();
@@ -42,6 +42,11 @@ void main() => group(
         });
 
         test('Inserts and removes', () {
+          final repaintBatchV2 =
+              _RePaintQuadTreeInsertsAndRemovesBatchV2Benchmark();
+          if (report)
+            // ignore: dead_code
+            repaintBatchV2.report();
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
           if (report)
             // ignore: dead_code
@@ -57,7 +62,10 @@ void main() => group(
             flame.report();
           if (!report)
             // ignore: dead_code
-            expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+            expect(
+              repaintBatchV2.measure(),
+              lessThanOrEqualTo(flame.measure()),
+            );
         });
 
         test('Static query', () {
@@ -155,6 +163,40 @@ class _FlameQuadTreeInsertsBenchmark extends BenchmarkBase {
       qt.add(box);
     }
     //qt.optimize();
+  }
+}
+
+class _RePaintQuadTreeInsertsAndRemovesBatchV2Benchmark extends BenchmarkBase {
+  _RePaintQuadTreeInsertsAndRemovesBatchV2Benchmark()
+      : super('RePaint QuadTree inserts & removes batch V2');
+
+  late QuadTree qt;
+
+  @override
+  void setup() {
+    qt = QuadTree(
+      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
+      capacity: 25,
+    );
+    super.setup();
+  }
+
+  @override
+  void run() {
+    qt.clear();
+    final queue = Queue<int>();
+    for (var i = 0; i < 100; i++) {
+      final box = ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10);
+      final id = qt.insert(box);
+      if (id == null) {
+        throw Exception('Failed to insert');
+      }
+      queue.add(id);
+    }
+    if (qt.length != 100) throw Exception('Failed to insert all');
+    while (queue.isNotEmpty) qt.remove(queue.removeFirst(), optimize: false);
+    qt.optimize();
+    if (qt.length != 0) throw Exception('Failed to remove all');
   }
 }
 
