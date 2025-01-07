@@ -260,12 +260,58 @@ final class QuadTree {
     throw ArgumentError('Object with id $id not found.');
   }
 
-  // TODO(plugfox):
-  // Get many objects at once
-  // Query
-  // Optimize
-  // Visitors
-  // Mike Matiunin <plugfox@gmail.com>, 07 January 2025
+  /// Query the QuadTree for objects that intersect with the given [rect].
+  /// Returns a list of object identifiers.
+  List<int> queryIds(ui.Rect rect) {
+    if (rect.isEmpty || rect.isInfinite) return const [];
+
+    if (rect.left <= boundary.left &&
+        rect.top <= boundary.top &&
+        rect.right >= boundary.right &&
+        rect.bottom >= boundary.bottom) {
+      // The query rectangle fully contains the QuadTree boundary.
+      // Return all objects in the QuadTree.
+      final results = Uint32List(_length);
+      var counter = 0;
+      for (var i = 0; i < _nodeSize; i += 5) {
+        final id = _idsView[i];
+        if (id == 0) continue; // Skip empty slots
+        results[counter] = id;
+        counter++;
+      }
+      assert(counter == _length, 'Invalid count of objects in the QuadTree.');
+      return results;
+    }
+
+    final results = <int>[];
+    final root = _root;
+    if (root == null) return Uint32List(0);
+    final queue = Queue<QuadTree$Node>()..add(root);
+    while (queue.isNotEmpty) {
+      final node = queue.removeFirst();
+      if (!_overlaps(node.boundary, rect)) continue;
+      if (node.subdivided) {
+        queue
+          ..add(node._northWest!)
+          ..add(node._northEast!)
+          ..add(node._southWest!)
+          ..add(node._southEast!);
+      } else {
+        for (var i = 0; i < _nodeSize; i += 5) {
+          final id = node._idsView[i];
+          if (id == 0) continue; // Skip empty slots
+          if (_overlapsLTWH(
+            rect,
+            node._objectsView[i + 3],
+            node._objectsView[i + 4],
+            node._objectsView[i + 1],
+            node._objectsView[i + 2],
+          )) results.add(id);
+        }
+      }
+    }
+    return results;
+  }
 
   /// Removes [id] from the Quadtree if it exists.
   /// After removal, tries merging nodes upward if possible.
@@ -818,6 +864,21 @@ bool _overlaps(ui.Rect a, ui.Rect b) =>
     a.right >= b.left &&
     a.top <= b.bottom &&
     a.bottom >= b.top;
+
+/// Checks if rectangle [rect] overlaps with the rectangle defined by
+/// [left], [top], [width], and [height].
+@pragma('vm:prefer-inline')
+bool _overlapsLTWH(
+  ui.Rect rect,
+  double left,
+  double top,
+  double width,
+  double height,
+) =>
+    rect.left <= left + width &&
+    rect.right >= left &&
+    rect.top <= top + height &&
+    rect.bottom >= top;
 
 /// Resizes a Uint32List to [newCapacity].
 @pragma('vm:prefer-inline')

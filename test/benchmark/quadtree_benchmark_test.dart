@@ -66,17 +66,17 @@ void main() => group(
         });
 
         test('Static query', () {
-          /* final repaint = _RePaintQuadTreeQueryBenchmark();
+          final repaint = _RePaintQuadTreeQueryBenchmark();
           if (report)
             // ignore: dead_code
-            repaint.report(); */
+            repaint.report();
           final flame = _FlameQuadTreeQueryBenchmark();
           if (report)
             // ignore: dead_code
             flame.report();
-          /* if (!report)
+          if (!report)
             // ignore: dead_code
-            expect(repaint.measure(), lessThanOrEqualTo(flame.measure())); */
+            expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
         });
       },
     );
@@ -201,38 +201,32 @@ class _FlameQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
   }
 }
 
-/* class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
+class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
   _RePaintQuadTreeQueryBenchmark() : super('RePaint QuadTree query');
 
-  late QuadTreeDeprecated qt;
-  static final camera = HitBox.square(size: 500, x: 250, y: 250);
+  late QuadTree qt;
+  static const camera = ui.Rect.fromLTWH(250, 250, 500, 500);
 
   @override
   void setup() {
-    qt = QuadTreeDeprecated(
-      boundary: HitBox.square(size: 1000),
+    qt = QuadTree(
+      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
       capacity: 25,
     );
     for (var i = 0; i < 100; i++)
-      qt.insert(
-        HitBox.rect(
-          width: 10,
-          height: 10,
-          x: i * 10.0,
-          y: i * 10.0,
-        ),
-      );
+      qt.insert(ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10));
     super.setup();
   }
 
   @override
   void run() {
-    List<HitBox>? results;
-    for (var i = 0; i < 100; i++) results = qt.query(camera);
-    if (results == null || results.length < 40)
+    List<int>? results;
+    for (var i = 0; i < 100; i++) results = qt.queryIds(camera);
+    // 52 results
+    if (results == null || results.length != 52)
       throw Exception('Not enough results');
   }
-} */
+}
 
 class _FlameQuadTreeQueryBenchmark extends BenchmarkBase {
   _FlameQuadTreeQueryBenchmark() : super('Flame QuadTree query');
@@ -273,7 +267,8 @@ class _FlameQuadTreeQueryBenchmark extends BenchmarkBase {
           .value
           .where((box) => box.aabb.intersectsWithAabb2(camera.aabb))
           .toList(growable: false);
-    if (results == null || results.length < 40)
+    // 52 results + camera
+    if (results == null || results.length != 53)
       throw Exception('Not enough results');
   }
 }
