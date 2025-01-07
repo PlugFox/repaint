@@ -449,8 +449,8 @@ final class QuadTree {
   /// Returns a list of problems found in the QuadTree.
   ///
   /// Main purpose is to check if the QuadTree is in a valid state.
-  /// You should not rely on this method for production code as it is slow and
-  /// not optimized for performance critical code.
+  /// You should not rely on this method for production code as it is
+  /// very-verry slow and expensive.
   /// Better to use this method for debugging and testing.
   ///
   /// Should be called only after [optimize] method.
@@ -476,8 +476,30 @@ final class QuadTree {
         if (node._objectsCount != node.length)
           errors.add('Leaf node #${node.id} has invalid objects count.');
 
-        // TODO(plugfox): Check data consistency
-        // Mike Matiunin <plugfox@gmail.com>, 08 January 2025
+        var counter = 0;
+        for (var i = 0; i < _nodeSize; i += 5) {
+          final id = node._idsView[i];
+          if (id == 0) continue; // Skip empty slots
+          if (id >= _nextId)
+            errors.add('Leaf node #${node.id} has invalid object id.');
+          if (_id2node[id] != node.id)
+            errors.add('Leaf node #${node.id} has invalid object reference.');
+          final width = node._objectsView[i + 1];
+          final height = node._objectsView[i + 2];
+          final left = node._objectsView[i + 3];
+          final top = node._objectsView[i + 4];
+          if (left > boundary.right)
+            errors.add('Object #$id outside the boundary.');
+          if (top > boundary.bottom)
+            errors.add('Object #$id outside the boundary.');
+          if (left + width < boundary.left)
+            errors.add('Object #$id outside the boundary.');
+          if (top + height < boundary.top)
+            errors.add('Object #$id outside the boundary.');
+          counter++;
+        }
+        if (counter != node._objectsCount)
+          errors.add('Leaf node #${node.id} has invalid objects count.');
 
         var child = node;
         var parent = node.parent;
@@ -504,10 +526,16 @@ final class QuadTree {
         if (node._length < 1)
           errors.add('Subdivided node #${node.id} is empty (call optimize).');
 
-        // TODO(plugfox): Check data is empty
-        // Mike Matiunin <plugfox@gmail.com>, 08 January 2025
+        final bytes = node._objectsView;
+        if (bytes.any((byte) => byte != 0))
+          errors.add('Subdivided node #${node.id} has non-empty data.');
       }
     });
+
+    // Check if all nodes are visited
+    for (var i = 0; i < _nodesCount; i++)
+      if (!nodeIds.contains(i)) errors.add('Node #$i is not visited.');
+
     return errors;
   }
 
