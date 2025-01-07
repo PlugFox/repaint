@@ -459,6 +459,8 @@ final class QuadTree {
     final errors = <String>[];
     if (capacity < 4) errors.add('Capacity must be greater or equal than 4.');
     final nodeIds = <int>{};
+    if (_root?._dirty ?? false)
+      errors.add('Root node is dirty (call optimize).');
     //final objects = <int>{};
     visit((node) {
       if (nodeIds.contains(node.id))
@@ -466,6 +468,8 @@ final class QuadTree {
       nodeIds.add(node.id);
       if (!identical(_nodes[node.id], node))
         errors.add('Node #${node.id} is not stored in the nodes array.');
+      if (node.capacity != capacity)
+        errors.add('Node #${node.id} has invalid capacity.');
       if (node._dirty) {
         errors.add('Node #${node.id} is dirty (call optimize).');
       } else if (node.leaf) {
@@ -525,6 +529,16 @@ final class QuadTree {
           errors.add('Subdivided node #${node.id} has objects.');
         if (node._length < 1)
           errors.add('Subdivided node #${node.id} is empty (call optimize).');
+        if (node._length < capacity) {
+          if (node._northWest!.subdivided)
+            errors.add('Subdivided node #${node.id} is not optimized.');
+          else if (node._northEast!.subdivided)
+            errors.add('Subdivided node #${node.id} is not optimized.');
+          else if (node._southWest!.subdivided)
+            errors.add('Subdivided node #${node.id} is not optimized.');
+          else if (node._southEast!.subdivided)
+            errors.add('Subdivided node #${node.id} is not optimized.');
+        }
 
         final bytes = node._objectsView;
         if (bytes.any((byte) => byte != 0))
