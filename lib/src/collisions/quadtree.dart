@@ -533,8 +533,8 @@ final class QuadTree {
     });
 
     // Check if all nodes are visited
-    for (var i = 0; i < _nodesCount; i++)
-      if (!nodeIds.contains(i)) errors.add('Node #$i is not visited.');
+    if (nodesCount != nodeIds.length)
+      errors.add('Invalid nodes count: $nodesCount != ${nodeIds.length}.');
 
     return errors;
   }

@@ -28,6 +28,7 @@ void main() => group(
             throw Exception('Failed to insert all');
           final errors = repaint.qt.healthCheck();
           if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+          expect(errors, isEmpty);
           final flame = _FlameQuadTreeInsertsBenchmark();
           if (report)
             // ignore: dead_code
@@ -51,6 +52,7 @@ void main() => group(
             repaint.report();
           final errors = repaint.qt.healthCheck();
           if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+          expect(errors, isEmpty);
           final flame = _FlameQuadTreeInsertsAndRemovesBenchmark();
           if (report)
             // ignore: dead_code
