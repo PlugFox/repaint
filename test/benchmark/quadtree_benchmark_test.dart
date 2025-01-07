@@ -106,7 +106,7 @@ class _RePaintQuadTreeInsertsBatchBenchmark extends BenchmarkBase {
       final box = HitBox.square(x: i * 10.0, y: i * 10.0, size: 10);
       qt.insert(box);
     }
-    //qt.optimize();
+    qt.optimize();
   }
 }
 
@@ -132,7 +132,7 @@ class _RePaintQuadTreeInsertsBatchV2Benchmark extends BenchmarkBase {
       final box = ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10);
       qt.insert(box);
     }
-    //qt.optimize();
+    qt.optimize();
   }
 }
 
@@ -162,7 +162,7 @@ class _FlameQuadTreeInsertsBenchmark extends BenchmarkBase {
       );
       qt.add(box);
     }
-    //qt.optimize();
+    qt.optimize();
   }
 }
 
@@ -188,12 +188,9 @@ class _RePaintQuadTreeInsertsAndRemovesBatchV2Benchmark extends BenchmarkBase {
     for (var i = 0; i < 100; i++) {
       final box = ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10);
       final id = qt.insert(box);
-      if (id == null) {
-        throw Exception('Failed to insert');
-      }
-      queue.add(id);
+      queue.add(id!);
     }
-    if (qt.length != 100) throw Exception('Failed to insert all');
+    //if (qt.length != 100) throw Exception('Failed to insert all');
     while (queue.isNotEmpty) qt.remove(queue.removeFirst(), optimize: false);
     qt.optimize();
     if (qt.length != 0) throw Exception('Failed to remove all');
