@@ -51,11 +51,11 @@ class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
   _RePaintQuadTreeInsertsAndRemovesBenchmark()
       : super('RePaint QuadTree inserts & removes');
 
-  late QuadTree qt;
+  late QuadTreeDeprecated qt;
 
   @override
   void setup() {
-    qt = QuadTree(
+    qt = QuadTreeDeprecated(
       boundary: HitBox.square(size: 1000),
       capacity: 25,
     );
@@ -79,11 +79,11 @@ class _RePaintQuadTreeInsertsAndRemovesBatchBenchmark extends BenchmarkBase {
   _RePaintQuadTreeInsertsAndRemovesBatchBenchmark()
       : super('RePaint QuadTree inserts & removes batch');
 
-  late QuadTree qt;
+  late QuadTreeDeprecated qt;
 
   @override
   void setup() {
-    qt = QuadTree(
+    qt = QuadTreeDeprecated(
       boundary: HitBox.square(size: 1000),
       capacity: 25,
     );
@@ -141,12 +141,12 @@ class _FlameQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
 class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
   _RePaintQuadTreeQueryBenchmark() : super('RePaint QuadTree query');
 
-  late QuadTree qt;
+  late QuadTreeDeprecated qt;
   static final camera = HitBox.square(size: 500, x: 250, y: 250);
 
   @override
   void setup() {
-    qt = QuadTree(
+    qt = QuadTreeDeprecated(
       boundary: HitBox.square(size: 1000),
       capacity: 25,
     );

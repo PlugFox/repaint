@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() => group('Quadtree', () {
       test('Create', () {
         expect(
-          () => QuadTree(
+          () => QuadTreeDeprecated(
             boundary: HitBox.square(size: 100),
             capacity: 4,
           ),
@@ -13,7 +13,7 @@ void main() => group('Quadtree', () {
       });
 
       test('Insert', () {
-        final qt = QuadTree(
+        final qt = QuadTreeDeprecated(
           boundary: HitBox.square(size: 100),
           capacity: 4,
         );
@@ -31,7 +31,7 @@ void main() => group('Quadtree', () {
       });
 
       test('Query', () {
-        final qt = QuadTree(
+        final qt = QuadTreeDeprecated(
           boundary: HitBox.square(size: 100),
           capacity: 4,
         )..insert(
