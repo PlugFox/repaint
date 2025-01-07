@@ -87,8 +87,8 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree move(RunTime): 122.40191533487861 us.
-          Flame QuadTree move(RunTime): 286.3479948253558 us.
+          RePaint QuadTree move(RunTime): 212.31838801561346 us.
+          Flame QuadTree move(RunTime): 326.2141691152465 us.
         */
         test('Move', () {
           final repaint = _RePaintQuadTreeMoveBenchmark();
