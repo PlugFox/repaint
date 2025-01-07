@@ -67,6 +67,9 @@ abstract interface class HitBox {
   /// The rectangle that defines the hitbox.
   ui.Rect get rect;
 
+  /// Creates a copy of this hitbox.
+  HitBox copy();
+
   /// Moves the hitbox to the specified coordinates.
   void move(double x, double y);
 
@@ -130,6 +133,14 @@ class _HitBox$Rect implements HitBox {
 
   @override
   ui.Rect get rect => ui.Rect.fromLTWH(x, y, width, height);
+
+  @override
+  HitBox copy() => _HitBox$Rect(
+        width: width,
+        height: height,
+        x: x,
+        y: y,
+      );
 
   @override
   @mustCallSuper

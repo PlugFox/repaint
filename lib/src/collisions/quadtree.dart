@@ -14,29 +14,38 @@ import 'hitbox.dart';
 /// {@endtemplate}
 class QuadTree<T extends HitBox> {
   /// Creates a new Quadtree with [boundary] and a [capacity].
-  /// If [parent] is null, this node is the root.
-  /// [objectNodeMap] is passed only internally when creating child nodes.
   ///
   /// {@macro quadtree}
   QuadTree({
-    required this.boundary,
+    required HitBox boundary,
     this.capacity = 4,
-    this.parent,
-    Map<T, QuadTree<T>>? objectNodeMap,
-  })  : _objectNodeMap = objectNodeMap ?? HashMap<T, QuadTree<T>>(),
-        objects = <T>[];
+  })  : _boundary = boundary.copy(),
+        _parent = null,
+        _box2node = HashMap<T, QuadTree<T>>(),
+        _boxes = <T>[];
 
-  /// Boundary of the current Quadtree node.
-  final HitBox boundary;
+  /// Nested constructor for creating child nodes.
+  QuadTree._nested({
+    required HitBox boundary,
+    required this.capacity,
+    required QuadTree<T> parent,
+    required Map<T, QuadTree<T>> box2node,
+  })  : _boundary = boundary,
+        _parent = parent,
+        _box2node = box2node,
+        _boxes = <T>[];
 
   /// Maximum number of objects in this node before subdividing.
   final int capacity;
 
+  /// Boundary of the current Quadtree node.
+  final HitBox _boundary;
+
   /// Parent node. Null if this is the root.
-  final QuadTree<T>? parent;
+  final QuadTree<T>? _parent;
 
   /// All objects stored in this node.
-  final List<T> objects;
+  final List<T> _boxes;
 
   /// Indicates whether this node has been subdivided into four child nodes.
   bool _subdivided = false;
@@ -50,10 +59,10 @@ class QuadTree<T extends HitBox> {
   /// A shared map of object -> node references, used to quickly find
   /// which node an object belongs to. This is stored in the root
   /// and shared across all children.
-  final Map<T, QuadTree<T>> _objectNodeMap;
+  final Map<T, QuadTree<T>> _box2node;
 
-  /// A quick way to retrieve the root node, traversing up via [parent].
-  QuadTree<T> get root => parent == null ? this : parent!.root;
+  /// A quick way to retrieve the root node, traversing up via [_parent].
+  QuadTree<T> get root => _parent == null ? this : _parent.root;
 
   // --------------------------------------------------------------------------
   // CORE METHODS
@@ -62,13 +71,13 @@ class QuadTree<T extends HitBox> {
   /// Inserts [object] into the Quadtree.
   /// Returns true if insertion is successful, otherwise false.
   bool insert(T object) {
-    if (!_overlapsBoundary(object, boundary)) return false;
+    if (!_overlapsBoundary(object, _boundary)) return false;
 
     // If there's space and no subdivision yet, simply add the object.
-    if (objects.length < capacity && !_subdivided) {
-      objects.add(object);
+    if (_boxes.length < capacity && !_subdivided) {
+      _boxes.add(object);
       // Remember that [object] resides in this node.
-      _objectNodeMap[object] = this;
+      _box2node[object] = this;
       return true;
     }
 
@@ -83,18 +92,18 @@ class QuadTree<T extends HitBox> {
 
     // If the object doesn't fit in a child (spans multiple quadrants),
     // keep it here.
-    objects.add(object);
-    _objectNodeMap[object] = this;
+    _boxes.add(object);
+    _box2node[object] = this;
     return true;
   }
 
   /// Removes [object] from the Quadtree if it exists.
   /// After removal, tries merging nodes upward if possible.
   void remove(T object, {bool optimize = true}) {
-    final node = _objectNodeMap[object];
+    final node = _box2node[object];
     if (node == null) return; // Object not found in any node
-    if (!node.objects.remove(object)) return; // Not actually in that node
-    _objectNodeMap.remove(object);
+    if (!node._boxes.remove(object)) return; // Not actually in that node
+    _box2node.remove(object);
     if (optimize) node._tryMergeUp();
   }
 
@@ -105,18 +114,18 @@ class QuadTree<T extends HitBox> {
   /// 3. Otherwise, removes from old node and re-inserts into the root,
   ///    since it might belong to a new location in the tree.
   void move(T object, double x, double y, {bool optimize = true}) {
-    final node = _objectNodeMap[object];
+    final node = _box2node[object];
     if (node == null) return; // no such object
 
     object.move(x, y); // Update position
 
     // Check if the object still fits in the same node's boundary.
-    if (_overlapsBoundary(object, node.boundary))
+    if (_overlapsBoundary(object, node._boundary))
       return; // If it still fits, do nothing; we've just updated coordinates.
 
     // Remove from old node
-    node.objects.remove(object);
-    _objectNodeMap.remove(object);
+    node._boxes.remove(object);
+    _box2node.remove(object);
 
     // Insert from the root
     root.insert(object);
@@ -125,10 +134,22 @@ class QuadTree<T extends HitBox> {
     if (optimize) node._tryMergeUp();
   }
 
+  /// Retrieves all objects in the Quadtree.
+  List<T> entries() => <T>[
+        // Check objects in the current node.
+        for (final object in _boxes) object,
+
+        // If subdivided, recurse into children nodes and collect objects.
+        ...?_northWest?.entries(),
+        ...?_northEast?.entries(),
+        ...?_southWest?.entries(),
+        ...?_southEast?.entries(),
+      ];
+
   /// Retrieves a list of objects that might overlap the rectangular
   /// query region specified by [hit].
   List<T> query(HitBox hit) {
-    if (!boundary.overlaps(hit)) return const [];
+    if (!_boundary.overlaps(hit)) return const [];
 
     // TODO(plugfox): Add sorting by distance to the hitbox or y coordinate.
     // Mike Matiunin <plugfox@gmail.com>, 07 January 2025
@@ -138,7 +159,7 @@ class QuadTree<T extends HitBox> {
 
     return <T>[
       // Check objects in the current node.
-      for (final object in objects)
+      for (final object in _boxes)
         if (object.overlaps(hit)) object,
 
       // If subdivided, recurse into children nodes and collect objects.
@@ -195,16 +216,29 @@ class QuadTree<T extends HitBox> {
   /// Removes all objects and resets the node (including children).
   /// This also clears the shared map for the root and all children.
   void clear() {
-    if (parent == null) {
+    if (_parent == null) {
       // Root node -> clear the shared map
-      _objectNodeMap.clear();
+      _box2node.clear();
     }
-    objects.clear();
+    _boxes.clear();
     _subdivided = false;
     _northWest = null;
     _northEast = null;
     _southWest = null;
     _southEast = null;
+  }
+
+  // --------------------------------------------------------------------------
+  // VISITORS
+  // --------------------------------------------------------------------------
+
+  /// Applies [visitor] to all objects in the Quadtree.
+  void visit(void Function(T object) visitor) {
+    _boxes.forEach(visitor);
+    _northWest?.visit(visitor);
+    _northEast?.visit(visitor);
+    _southWest?.visit(visitor);
+    _southEast?.visit(visitor);
   }
 
   // --------------------------------------------------------------------------
@@ -247,34 +281,30 @@ class QuadTree<T extends HitBox> {
   void _tryMergeUp() {
     if (!_subdivided) {
       // We can still bubble up if the parent can merge.
-      parent?._tryMergeUp();
+      _parent?._tryMergeUp();
       return;
     }
 
-    final totalObjects = objects.length +
-        _northWest!.objects.length +
-        _northEast!.objects.length +
-        _southWest!.objects.length +
-        _southEast!.objects.length;
+    final totalObjects = _boxes.length +
+        _northWest!._boxes.length +
+        _northEast!._boxes.length +
+        _southWest!._boxes.length +
+        _southEast!._boxes.length;
 
     // If the sum of objects in children plus current node
     // doesn't exceed capacity, we can merge them.
     if (totalObjects <= capacity) {
       // Move all children objects up to this node.
-      for (final childObj in _northWest!.objects)
-        _objectNodeMap[childObj] = this;
-      for (final childObj in _northEast!.objects)
-        _objectNodeMap[childObj] = this;
-      for (final childObj in _southWest!.objects)
-        _objectNodeMap[childObj] = this;
-      for (final childObj in _southEast!.objects)
-        _objectNodeMap[childObj] = this;
+      for (final childObj in _northWest!._boxes) _box2node[childObj] = this;
+      for (final childObj in _northEast!._boxes) _box2node[childObj] = this;
+      for (final childObj in _southWest!._boxes) _box2node[childObj] = this;
+      for (final childObj in _southEast!._boxes) _box2node[childObj] = this;
 
-      objects
-        ..addAll(_northWest!.objects)
-        ..addAll(_northEast!.objects)
-        ..addAll(_southWest!.objects)
-        ..addAll(_southEast!.objects);
+      _boxes
+        ..addAll(_northWest!._boxes)
+        ..addAll(_northEast!._boxes)
+        ..addAll(_southWest!._boxes)
+        ..addAll(_southEast!._boxes);
 
       // Remove children
       _northWest!.clear();
@@ -289,7 +319,7 @@ class QuadTree<T extends HitBox> {
     }
 
     // In either case, bubble up further if there's a parent.
-    parent?._tryMergeUp();
+    _parent?._tryMergeUp();
   }
 
   // --------------------------------------------------------------------------
@@ -300,12 +330,12 @@ class QuadTree<T extends HitBox> {
   /// North-West, North-East, South-West, South-East.
   void _subdivide() {
     _subdivided = true;
-    final halfWidth = boundary.width / 2;
-    final halfHeight = boundary.height / 2;
-    final x = boundary.left;
-    final y = boundary.top;
+    final halfWidth = _boundary.width / 2;
+    final halfHeight = _boundary.height / 2;
+    final x = _boundary.left;
+    final y = _boundary.top;
 
-    _northWest = QuadTree<T>(
+    _northWest = QuadTree<T>._nested(
       boundary: HitBox.rect(
         width: halfWidth,
         height: halfHeight,
@@ -314,9 +344,9 @@ class QuadTree<T extends HitBox> {
       ),
       capacity: capacity,
       parent: this,
-      objectNodeMap: _objectNodeMap,
+      box2node: _box2node,
     );
-    _northEast = QuadTree<T>(
+    _northEast = QuadTree<T>._nested(
       boundary: HitBox.rect(
         width: halfWidth,
         height: halfHeight,
@@ -325,9 +355,9 @@ class QuadTree<T extends HitBox> {
       ),
       capacity: capacity,
       parent: this,
-      objectNodeMap: _objectNodeMap,
+      box2node: _box2node,
     );
-    _southWest = QuadTree<T>(
+    _southWest = QuadTree<T>._nested(
       boundary: HitBox.rect(
         width: halfWidth,
         height: halfHeight,
@@ -336,9 +366,9 @@ class QuadTree<T extends HitBox> {
       ),
       capacity: capacity,
       parent: this,
-      objectNodeMap: _objectNodeMap,
+      box2node: _box2node,
     );
-    _southEast = QuadTree<T>(
+    _southEast = QuadTree<T>._nested(
       boundary: HitBox.rect(
         width: halfWidth,
         height: halfHeight,
@@ -347,7 +377,7 @@ class QuadTree<T extends HitBox> {
       ),
       capacity: capacity,
       parent: this,
-      objectNodeMap: _objectNodeMap,
+      box2node: _box2node,
     );
   }
 
