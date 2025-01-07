@@ -43,14 +43,27 @@ class QuadTree<T extends HitBox> {
   /// Boundary of the current Quadtree node.
   final HitBox _boundary;
 
+  /// Make a copy of the boundary to avoid accidental modifications.
+  HitBox get boundary => _boundary.copy();
+
   /// Parent node. Null if this is the root.
   final QuadTree<T>? _parent;
+
+  /// Parent node. Null if this is the root.
+  QuadTree<T>? get parent => _parent;
 
   /// All objects stored in this node.
   final List<T> _boxes;
 
+  /// All objects stored in this node.
+  /// This is a copy of the internal list to avoid accidental modifications.
+  List<T> get objects => _boxes.toList(growable: false);
+
   /// Indicates whether this node has been subdivided into four child nodes.
   bool _subdivided = false;
+
+  /// Indicates whether this node has been subdivided into four child nodes.
+  bool get subdivided => _subdivided;
 
   /// Child nodes (quadrants).
   QuadTree<T>? _northWest;
@@ -99,43 +112,6 @@ class QuadTree<T extends HitBox> {
     return true;
   }
 
-  /// Removes [object] from the Quadtree if it exists.
-  /// After removal, tries merging nodes upward if possible.
-  void remove(T object, {bool optimize = true}) {
-    final node = _box2node[object];
-    if (node == null) return; // Object not found in any node
-    if (!node._boxes.remove(object)) return; // Not actually in that node
-    _box2node.remove(object);
-    if (optimize) node._tryMergeUp();
-  }
-
-  /// Moves [object] to new [x], [y] coordinates.
-  ///
-  /// 1. Finds the node containing [object].
-  /// 2. If the object is still in the same boundary, just update position.
-  /// 3. Otherwise, removes from old node and re-inserts into the root,
-  ///    since it might belong to a new location in the tree.
-  void move(T object, double x, double y, {bool optimize = true}) {
-    final node = _box2node[object];
-    if (node == null) return; // no such object
-
-    object.move(x, y); // Update position
-
-    // Check if the object still fits in the same node's boundary.
-    if (_overlapsBoundary(object, node._boundary))
-      return; // If it still fits, do nothing; we've just updated coordinates.
-
-    // Remove from old node
-    node._boxes.remove(object);
-    _box2node.remove(object);
-
-    // Insert from the root
-    root.insert(object);
-
-    // After removal, old node might be empty, try merging it.
-    if (optimize) node._tryMergeUp();
-  }
-
   /// Retrieves all objects in the Quadtree.
   List<T> entries() => <T>[
         // Check objects in the current node.
@@ -170,6 +146,43 @@ class QuadTree<T extends HitBox> {
       ...?_southWest?.query(hit),
       ...?_southEast?.query(hit),
     ];
+  }
+
+  /// Moves [object] to new [x], [y] coordinates.
+  ///
+  /// 1. Finds the node containing [object].
+  /// 2. If the object is still in the same boundary, just update position.
+  /// 3. Otherwise, removes from old node and re-inserts into the root,
+  ///    since it might belong to a new location in the tree.
+  void move(T object, double x, double y, {bool optimize = true}) {
+    final node = _box2node[object];
+    if (node == null) return; // no such object
+
+    object.move(x, y); // Update position
+
+    // Check if the object still fits in the same node's boundary.
+    if (_overlapsBoundary(object, node._boundary))
+      return; // If it still fits, do nothing; we've just updated coordinates.
+
+    // Remove from old node
+    node._boxes.remove(object);
+    _box2node.remove(object);
+
+    // Insert from the root
+    root.insert(object);
+
+    // After removal, old node might be empty, try merging it.
+    if (optimize) node._tryMergeUp();
+  }
+
+  /// Removes [object] from the Quadtree if it exists.
+  /// After removal, tries merging nodes upward if possible.
+  void remove(T object, {bool optimize = true}) {
+    final node = _box2node[object];
+    if (node == null) return; // Object not found in any node
+    if (!node._boxes.remove(object)) return; // Not actually in that node
+    _box2node.remove(object);
+    if (optimize) node._tryMergeUp();
   }
 
   /*
@@ -237,10 +250,40 @@ class QuadTree<T extends HitBox> {
   /// Applies [visitor] to all objects in the Quadtree.
   void visit(void Function(T object) visitor) {
     _boxes.forEach(visitor);
+    assert(
+      !_subdivided ||
+          (_northWest != null &&
+              _northEast != null &&
+              _southWest != null &&
+              _southEast != null),
+      'Subdivided but children are null',
+    );
+    if (!_subdivided) return;
     _northWest?.visit(visitor);
     _northEast?.visit(visitor);
     _southWest?.visit(visitor);
     _southEast?.visit(visitor);
+  }
+
+  /// Applies [visitor] to all nodes in the Quadtree and
+  /// their respective objects.
+  ///
+  /// Main use case is debugging and visualization of the tree.
+  void visitNodes(void Function(QuadTree<T> node) visitor) {
+    visitor(this);
+    assert(
+      !_subdivided ||
+          (_northWest != null &&
+              _northEast != null &&
+              _southWest != null &&
+              _southEast != null),
+      'Subdivided but children are null',
+    );
+    if (!_subdivided) return;
+    _northWest?.visitNodes(visitor);
+    _northEast?.visitNodes(visitor);
+    _southWest?.visitNodes(visitor);
+    _southEast?.visitNodes(visitor);
   }
 
   // --------------------------------------------------------------------------
