@@ -12,6 +12,34 @@ void main() => group(
       () {
         var report = true;
 
+        /*
+          RePaint QuadTree inserts batch(RunTime): 820.265 us.
+          RePaint QuadTree inserts batch v2(RunTime): 164.9196479973682 us.
+        */
+        test('Inserts', () {
+          final repaintBatchV2 = _RePaintQuadTreeInsertsBatchV2Benchmark();
+          if (report)
+            // ignore: dead_code
+            repaintBatchV2.report();
+          final repaintBatch = _RePaintQuadTreeInsertsBatchBenchmark();
+          if (report)
+            // ignore: dead_code
+            repaintBatch.report();
+          final flame = _FlameQuadTreeInsertsBenchmark();
+          if (report)
+            // ignore: dead_code
+            flame.report();
+          if (!report)
+            // ignore: dead_code
+            expect(
+              repaintBatchV2.measure(),
+              allOf(
+                lessThanOrEqualTo(repaintBatch.measure()),
+                lessThanOrEqualTo(flame.measure()),
+              ),
+            );
+        });
+
         test('Inserts and removes', () {
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
           if (report)
@@ -46,6 +74,88 @@ void main() => group(
         });
       },
     );
+
+class _RePaintQuadTreeInsertsBatchBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeInsertsBatchBenchmark()
+      : super('RePaint QuadTree inserts batch');
+
+  late QuadTreeDeprecated qt;
+
+  @override
+  void setup() {
+    qt = QuadTreeDeprecated(
+      boundary: HitBox.square(size: 10000),
+      capacity: 25,
+    );
+    super.setup();
+  }
+
+  @override
+  void run() {
+    qt.clear();
+    for (var i = 0; i < 1000; i++) {
+      final box = HitBox.square(x: i * 10.0, y: i * 10.0, size: 10);
+      qt.insert(box);
+    }
+    //qt.optimize();
+  }
+}
+
+class _RePaintQuadTreeInsertsBatchV2Benchmark extends BenchmarkBase {
+  _RePaintQuadTreeInsertsBatchV2Benchmark()
+      : super('RePaint QuadTree inserts batch v2');
+
+  late QuadTree qt;
+
+  @override
+  void setup() {
+    qt = QuadTree(
+      boundary: const ui.Rect.fromLTWH(0, 0, 10000, 10000),
+      capacity: 25,
+    );
+    super.setup();
+  }
+
+  @override
+  void run() {
+    qt.clear();
+    for (var i = 0; i < 1000; i++) {
+      final box = ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10);
+      qt.insert(box);
+    }
+    //qt.optimize();
+  }
+}
+
+class _FlameQuadTreeInsertsBenchmark extends BenchmarkBase {
+  _FlameQuadTreeInsertsBenchmark() : super('Flame QuadTree inserts');
+
+  static final Vector2 _size = Vector2.all(10);
+  late flame.QuadTree qt;
+
+  @override
+  void setup() {
+    qt = flame.QuadTree<flame.Hitbox<flame.ShapeHitbox>>(
+      mainBoxSize: const ui.Rect.fromLTWH(0, 0, 10000, 10000),
+      maxObjects: 25,
+      maxDepth: 10,
+    );
+    super.setup();
+  }
+
+  @override
+  void run() {
+    qt.clear();
+    for (var i = 0; i < 1000; i++) {
+      final box = flame.RectangleHitbox(
+        size: _size,
+        position: Vector2(i * 10.0, i * 10.0),
+      );
+      qt.add(box);
+    }
+    //qt.optimize();
+  }
+}
 
 class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
   _RePaintQuadTreeInsertsAndRemovesBenchmark()
