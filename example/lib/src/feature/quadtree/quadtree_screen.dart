@@ -144,7 +144,7 @@ class QuadTreePainter extends RePainterBase {
     switch (event) {
       case PointerHoverEvent hover:
         if (!_spacebarPressed) return;
-        _moveCamera(hover.localDelta);
+        _moveCamera(-hover.localDelta);
       case PointerMoveEvent move:
         if (!move.down) return;
         _onClick(move.localPosition);
