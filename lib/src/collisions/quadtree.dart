@@ -507,13 +507,15 @@ final class QuadTree {
   // --------------------------------------------------------------------------
 
   /// Visit all nodes in the QuadTree.
-  void visit(void Function(QuadTree$Node node) visitor) {
+  /// The walk stops when it iterates over all nodes or
+  /// when the callback returns false.
+  void visit(bool Function(QuadTree$Node node) visitor) {
     final root = _root;
     if (root == null) return;
     final queue = Queue<QuadTree$Node>()..add(root);
     while (queue.isNotEmpty) {
       final node = queue.removeFirst();
-      visitor(node);
+      if (!visitor(node)) return;
       if (node.leaf) continue;
       queue
         ..add(node._northWest!)
@@ -744,6 +746,7 @@ final class QuadTree {
         if (bytes.any((byte) => byte != 0))
           errors.add('Subdivided node #${node.id} has non-empty data.');
       }
+      return true; // Continue visiting
     });
 
     // Check if all nodes are visited
@@ -956,8 +959,10 @@ class QuadTree$Node {
   // --------------------------------------------------------------------------
 
   /// Visit all objects in this node and its children.
+  /// The walk stops when it iterates over all objects or
+  /// when the callback returns false.
   void forEach(
-    void Function(
+    bool Function(
       int id,
       double width,
       double height,
@@ -978,13 +983,15 @@ class QuadTree$Node {
         final $id = _idsView[i]; // id
         if ($id == 0) continue; // Skip empty slots
         objCounter--; // Decrease the counter of objects in the child node
-        cb(
+        final next = cb(
           $id,
           _objectsView[i + 1], // width
           _objectsView[i + 2], // height
           _objectsView[i + 3], // left (x)
           _objectsView[i + 4], // top (y)
         );
+        if (next) continue;
+        return;
       }
     }
   }
