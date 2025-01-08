@@ -16,8 +16,8 @@ void main() => group(
         var report = true;
 
         /*
-          RePaint QuadTree inserts(RunTime): 1312.946 us.
-          Flame QuadTree inserts(RunTime): 30701.432835820895 us.
+          RePaint QuadTree inserts(RunTime): 1348.4905 us.
+          Flame QuadTree inserts(RunTime): 30749.530303030304 us.
         */
         test('Inserts', () {
           final repaint = _RePaintQuadTreeInsertsBenchmark();
@@ -42,8 +42,8 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree inserts & removes(RunTime): 133.5937792017087 us.
-          Flame QuadTree inserts & removes(RunTime): 2411.84125 us.
+          RePaint QuadTree inserts & removes(RunTime): 133.54164466737063 us.
+          Flame QuadTree inserts & removes(RunTime): 2523.804 us.
         */
         test('Inserts and removes', () {
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
@@ -66,8 +66,8 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree query(RunTime): 800.08575 us.
-          Flame QuadTree query(RunTime): 2261.023 us.
+          RePaint QuadTree query(RunTime): 549.48475 us.
+          Flame QuadTree query(RunTime): 2172.233 us.
         */
         test('Static query', () {
           final repaint = _RePaintQuadTreeQueryBenchmark();
@@ -87,8 +87,8 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree move(RunTime): 212.31838801561346 us.
-          Flame QuadTree move(RunTime): 326.2141691152465 us.
+          RePaint QuadTree move(RunTime): 223.54698849033412 us.
+          Flame QuadTree move(RunTime): 332.8446457990115 us.
         */
         test('Move', () {
           final repaint = _RePaintQuadTreeMoveBenchmark();
