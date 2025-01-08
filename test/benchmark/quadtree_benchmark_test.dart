@@ -106,6 +106,22 @@ void main() => group(
             // ignore: dead_code
             expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
         });
+
+        test('Capacity', () {
+          final results = <int, double>{};
+          for (var i = 6; i < 32; i += 2) {
+            final repaint = _RePaintQuadTreeCapacityBenchmark(i);
+            results[i] = repaint.measure();
+            final errors = repaint.qt.healthCheck();
+            //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+            expect(errors, isEmpty);
+          }
+          if (report)
+            // ignore: dead_code, avoid_print
+            print(results.entries
+                .map((e) => '${e.key}: ${e.value} us.')
+                .join('\n'));
+        });
       },
     );
 
@@ -367,5 +383,58 @@ class _FlameQuadTreeMoveBenchmark extends BenchmarkBase {
     qt
       ..remove(rect)
       ..optimize();
+  }
+}
+
+class _RePaintQuadTreeCapacityBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeCapacityBenchmark(this.capacity)
+      : super('RePaint QuadTree capacity: $capacity');
+
+  late QuadTree qt;
+  final int capacity;
+  static const ui.Rect camera = ui.Rect.fromLTWH(250, 250, 100, 100);
+
+  @override
+  void setup() {
+    qt = QuadTree(
+      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
+      capacity: capacity,
+    );
+    super.setup();
+  }
+
+  @override
+  void run() {
+    // Clear
+    qt.clear();
+    final queue = Queue<int>();
+
+    // Insert
+    for (var i = 0; i < 1000; i++) {
+      final box = ui.Rect.fromLTWH(i * 1.0, i * 1.0, 10, 10);
+      final id = qt.insert(box);
+      queue.add(id!);
+    }
+    if (qt.length != 1000) throw Exception('Failed to insert all');
+
+    // Move
+    final id = qt.insert(const ui.Rect.fromLTWH(0, 0, 10, 10));
+    if (id == null) throw Exception('Failed to insert');
+    for (var i = 0; i < 1000; i++) qt.move(id, i * 1.0, i * 1.0);
+    final pos = qt.get(id);
+    if (pos.left != 999 || pos.top != 999) throw Exception('Failed to move');
+    qt.remove(id);
+
+    // Query
+    List<int>? results;
+    for (var i = 0; i < 100; i++) results = qt.queryIds(camera);
+    if (results == null || results.isEmpty)
+      throw Exception('Not enough results');
+
+    // Remove
+    while (queue.isNotEmpty) qt.remove(queue.removeFirst());
+    // Optimize
+    qt.optimize();
+    if (qt.length != 0) throw Exception('Failed to remove all');
   }
 }

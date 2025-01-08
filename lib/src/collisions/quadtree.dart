@@ -20,11 +20,11 @@ final class QuadTree {
   /// {@macro quadtree}
   factory QuadTree({
     required ui.Rect boundary,
-    int capacity = 10,
+    int capacity = 18,
   }) {
     assert(boundary.isFinite, 'The boundary must be finite.');
     assert(!boundary.isEmpty, 'The boundary must not be empty.');
-    assert(capacity >= 4, 'The capacity must be greater or equal than 4.');
+    assert(capacity >= 6, 'The capacity must be greater or equal than 6.');
     final nodeSize = capacity * 5;
     const reserved = 64;
     final nodes = List<QuadTree$Node?>.filled(reserved, null, growable: false);
@@ -680,7 +680,7 @@ final class QuadTree {
   @visibleForTesting
   List<String> healthCheck() {
     final errors = <String>[];
-    if (capacity < 4) errors.add('Capacity must be greater or equal than 4.');
+    if (capacity < 6) errors.add('Capacity must be greater or equal than 6.');
     final nodeIds = <int>{};
     if (_root?._dirty ?? false)
       errors.add('Root node is dirty (call optimize).');
