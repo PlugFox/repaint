@@ -1,6 +1,7 @@
 ## 0.0.6
 
 - **ADDED**: Basic `QuadTree` implementation and example
+- **CHANGED**: Minimum Flutter version is now 3.27.0
 
 ## 0.0.5
 
