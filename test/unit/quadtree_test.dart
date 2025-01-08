@@ -75,7 +75,7 @@ void main() => group('Quadtree', () {
         expect(
           () => QuadTree(
             boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
-            capacity: 4,
+            capacity: 6,
           ),
           returnsNormally,
         );
@@ -84,60 +84,46 @@ void main() => group('Quadtree', () {
       test('Insert', () {
         final qt = QuadTree(
           boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
-          capacity: 4,
+          capacity: 6,
         );
+        expect(qt.length, equals(0));
         expect(
           () => qt.insert(const ui.Rect.fromLTWH(10, 10, 10, 10)),
           returnsNormally,
         );
-      });
-
-      /* test('Query', () {
-        final qt = QuadTree(
-          boundary: const Rect.fromLTWH(0, 0, 100, 100),
-          capacity: 4,
-        )..insert(const Rect.fromLTWH(10, 10, 10, 10));
+        expect(qt.length, equals(1));
         expect(
-          () => qt.query(
-            HitBox.rect(
-              width: 10,
-              height: 10,
-              x: 10,
-              y: 10,
-            ),
-          ),
+          () => qt.insert(const ui.Rect.fromLTWH(10, 10, 10, 10)),
           returnsNormally,
         );
-        expect(
-          qt.query(
-            HitBox.square(
-              size: 10,
-              x: 10,
-              y: 10,
-            ),
-          ),
-          allOf(
-            isNotEmpty,
-            hasLength(1),
-            contains(
-              HitBox.rect(
-                width: 10,
-                height: 10,
-                x: 10,
-                y: 10,
-              ),
-            ),
-          ),
+        expect(qt.length, equals(2));
+      });
+
+      test('Move', () {
+        final qt = QuadTree(
+          boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
+          capacity: 6,
         );
-        expect(
-          qt.query(
-            HitBox.square(
-              size: 10,
-            ),
-          ),
-          isEmpty,
+        final id = qt.insert(const ui.Rect.fromLTWH(10, 10, 10, 10));
+        expect(id, isNotNull);
+        id!;
+        expect(() => qt.move(id, 10, 10), returnsNormally);
+        expect(() => qt.move(id, 20, 20), returnsNormally);
+        expect(qt.length, equals(1));
+      });
+
+      test('Remove', () {
+        final qt = QuadTree(
+          boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
+          capacity: 6,
         );
-      }); */
+        final id = qt.insert(const ui.Rect.fromLTWH(10, 10, 10, 10));
+        expect(id, isNotNull);
+        expect(qt.length, equals(1));
+        id!;
+        expect(() => qt.remove(id), returnsNormally);
+        expect(qt.length, equals(0));
+      });
 
       test('Query', () {
         final qt = QuadTree(
@@ -176,5 +162,59 @@ void main() => group('Quadtree', () {
             hasLength(1),
           ),
         );
+      });
+
+      test('Create/Move/Query/Remove/Optimize/Clear', () {
+        final qt = QuadTree(
+          boundary: const ui.Rect.fromLTWH(0, 0, 10000, 50000),
+          capacity: 6,
+        );
+        expect(qt.length, equals(0));
+        expect(qt.nodesCount, equals(0));
+        for (var i = 0; i < 10; i++) {
+          expect(
+            () => qt.insert(ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10)),
+            returnsNormally,
+          );
+        }
+        expect(qt.length, equals(10));
+        expect(qt.nodesCount, greaterThan(0));
+        expect(() => qt.get(10), returnsNormally);
+        expect(
+          qt.get(10),
+          allOf(
+            isNotNull,
+            isA<ui.Rect>(),
+          ),
+        );
+        for (var i = 0; i < 10; i++) {
+          expect(
+            () => qt.move(10, i * 10.0, i * 10.0),
+            returnsNormally,
+          );
+        }
+        expect(
+          qt.query(const ui.Rect.fromLTWH(5, 5, 1000, 1000)).length,
+          equals(10),
+        );
+        expect(qt.optimize, returnsNormally);
+        expect(
+          qt.query(const ui.Rect.fromLTWH(5, 5, 1000, 1000)).length,
+          equals(10),
+        );
+        expect(() => qt.remove(10), returnsNormally);
+        expect(() => qt.remove(5), returnsNormally);
+        expect(qt.length, equals(8));
+        expect(
+          qt.queryIds(const ui.Rect.fromLTWH(-10000, -10000, 20000, 20000)),
+          allOf(
+            isA<List<int>>(),
+            hasLength(8),
+            containsAll([1, 2, 3, 4, 6, 7, 8, 9]),
+          ),
+        );
+        expect(qt.optimize, returnsNormally);
+        expect(qt.healthCheck(), isEmpty);
+        expect(qt.clear, returnsNormally);
       });
     });
