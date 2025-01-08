@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -218,8 +219,8 @@ class QuadTreePainter extends RePainterBase {
         point.dx + cameraCenter.dx - _size.width / 2,
         point.dy + cameraCenter.dy - _size.height / 2,
       ),
-      width: 10,
-      height: 10,
+      width: 2,
+      height: 2,
     );
     final id = _quadTree.insert(dot);
     if (id == null) return;
@@ -272,7 +273,7 @@ class QuadTreePainter extends RePainterBase {
   final Paint _pointPaint = Paint()
     ..color = Colors.black
     ..style = PaintingStyle.fill
-    ..strokeWidth = 10;
+    ..strokeWidth = 2;
 
   int _spinnerIndex = 0;
   static const List<String> _spinnerSymbols = [
@@ -293,7 +294,8 @@ class QuadTreePainter extends RePainterBase {
     _spinnerIndex++;
     final nbsp = String.fromCharCode(160);
     final status = StringBuffer()
-      ..write(_spinnerSymbols[_spinnerIndex % _spinnerSymbols.length])
+      ..write(_spinnerSymbols[_spinnerIndex =
+          _spinnerIndex % _spinnerSymbols.length])
       ..write(' | ')
       ..write('World:')
       ..write(nbsp)
@@ -361,7 +363,52 @@ class QuadTreePainter extends RePainterBase {
     );
   }
 
-  void _drawQuadTree(Size size, Canvas canvas) {}
+  final Paint _nodePaint = Paint()
+    ..color = Colors.white
+    ..strokeWidth = 0.1
+    ..style = PaintingStyle.stroke;
+
+  /// Draw the quadtree nodes on the canvas.
+  void _drawQuadTree(Size size, Canvas canvas) {
+    final cam = _camera.boundary;
+    final queue = Queue<QuadTree$Node?>()..add(_quadTree.root);
+    while (queue.isNotEmpty) {
+      final node = queue.removeFirst();
+      if (node == null) continue;
+      if (!node.boundary.overlaps(cam)) continue;
+      if (node.subdivided) {
+        // Parent node is subdivided, add children to the queue.
+        queue
+          ..add(node.northWest)
+          ..add(node.northEast)
+          ..add(node.southWest)
+          ..add(node.southEast);
+      } else {
+        // Draw the leaf node.
+        final nodeBounds = Rect.fromLTWH(
+          node.boundary.left - cam.left,
+          node.boundary.top - cam.top,
+          node.boundary.width,
+          node.boundary.height,
+        );
+
+        // Check if any vertices are visible.
+        if (nodeBounds.right < 0 ||
+            nodeBounds.left > size.width ||
+            nodeBounds.bottom < 0 ||
+            nodeBounds.top > size.height) {
+          continue;
+        }
+        final k = 1.0 / (node.depth + 1);
+        canvas.drawRect(
+          nodeBounds,
+          _nodePaint
+            ..strokeWidth = k * 2
+            ..color = Colors.white.withValues(alpha: 1 - k),
+        );
+      }
+    }
+  }
 
   @override
   void paint(RePaintBox box, PaintingContext context) {
