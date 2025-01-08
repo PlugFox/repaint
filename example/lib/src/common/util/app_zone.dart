@@ -17,7 +17,7 @@ void appZone(FutureOr<void> Function() fn) => l.capture<void>(
       const LogOptions(
         handlePrint: true,
         messageFormatting: _messageFormatting,
-        outputInRelease: false,
+        outputInRelease: true,
         printColors: true,
       ),
     );

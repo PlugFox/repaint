@@ -262,6 +262,7 @@ class QuadTreePainter extends RePainterBase {
         counter += 2;
         return true;
       });
+      //_sortByY(_points);
     }
   }
 
@@ -437,4 +438,49 @@ class QuadTreeCamera {
 
   /// Set the camera to the given boundary.
   void set(Rect boundary) => _boundary = boundary;
+}
+
+/// Sort the list of points by the y-coordinate.
+// ignore: unused_element
+void _sortByY(Float32List list) {
+  void swap(Float32List list, int i, int j) {
+    if (i == j) return;
+    // Меняем x
+    final tempX = list[i * 2];
+    list[i * 2] = list[j * 2];
+    list[j * 2] = tempX;
+
+    // Меняем y
+    final tempY = list[i * 2 + 1];
+    list[i * 2 + 1] = list[j * 2 + 1];
+    list[j * 2 + 1] = tempY;
+  }
+
+  int partition(Float32List list, int low, int high) {
+    // Используем значение y на последней позиции в качестве опорного
+    final pivotY = list[high * 2 + 1];
+    int i = low - 1;
+
+    for (int j = low; j < high; j++) {
+      if (list[j * 2 + 1] <= pivotY) {
+        i++;
+        // Обмениваем пары [x, y]
+        swap(list, i, j);
+      }
+    }
+
+    // Перемещаем опорный элемент на правильную позицию
+    swap(list, i + 1, high);
+    return i + 1;
+  }
+
+  void quickSort(int low, int high) {
+    if (low < high) {
+      final pivotIndex = partition(list, low, high);
+      quickSort(low, pivotIndex - 1);
+      quickSort(pivotIndex + 1, high);
+    }
+  }
+
+  quickSort(0, list.length ~/ 2 - 1);
 }
