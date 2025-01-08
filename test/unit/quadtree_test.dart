@@ -145,10 +145,10 @@ void main() => group('Quadtree', () {
           capacity: 6,
         )..insert(const ui.Rect.fromLTWH(10, 10, 10, 10));
         expect(
-          () => qt.queryB(const ui.Rect.fromLTWH(10, 10, 10, 10)),
+          () => qt.query(const ui.Rect.fromLTWH(10, 10, 10, 10)),
           returnsNormally,
         );
-        var result = qt.queryB(const ui.Rect.fromLTWH(10, 10, 10, 10));
+        var result = qt.query(const ui.Rect.fromLTWH(10, 10, 10, 10));
         expect(
           result,
           isA<QueryResult>()

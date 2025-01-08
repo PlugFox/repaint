@@ -336,7 +336,7 @@ class _RePaintQuadTreeQueryBBenchmark extends BenchmarkBase {
   @override
   void run() {
     Map<int, ui.Rect>? results;
-    for (var i = 0; i < 100; i++) results = qt.queryB(camera).toMap();
+    for (var i = 0; i < 100; i++) results = qt.query(camera).toMap();
     // 52 results
     if (results == null || results.length != 52)
       throw Exception('Not enough results');
