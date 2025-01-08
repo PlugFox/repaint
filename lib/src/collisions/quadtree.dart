@@ -92,6 +92,7 @@ final class QuadTree {
   final int _nodeSize;
 
   /// The root node of the QuadTree.
+  QuadTree$Node? get root => _root;
   QuadTree$Node? _root;
 
   /// The next identifier for a node in the QuadTree
@@ -845,10 +846,20 @@ class QuadTree$Node {
   /// A leaf node is a node that has not been subdivided and can store objects.
   bool get leaf => !_subdivided;
 
-  /// Child nodes (quadrants).
+  /// The North-West child node (quadrant) of this node.
+  QuadTree$Node? get northWest => _northWest;
   QuadTree$Node? _northWest;
+
+  /// The North-East child node (quadrant) of this node.
+  QuadTree$Node? get northEast => _northEast;
   QuadTree$Node? _northEast;
+
+  /// The South-West child node (quadrant) of this node.
+  QuadTree$Node? get southWest => _southWest;
   QuadTree$Node? _southWest;
+
+  /// The South-East child node (quadrant) of this node.
+  QuadTree$Node? get southEast => _southEast;
   QuadTree$Node? _southEast;
 
   /// Mark this node as dirty and possibly needs optimization to merge with
