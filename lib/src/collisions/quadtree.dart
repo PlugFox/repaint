@@ -952,6 +952,44 @@ class QuadTree$Node {
   }
 
   // --------------------------------------------------------------------------
+  // VISITORS AND ITTERATORS
+  // --------------------------------------------------------------------------
+
+  /// Visit all objects in this node and its children.
+  void forEach(
+    void Function(
+      int id,
+      double width,
+      double height,
+      double left,
+      double top,
+    ) cb,
+  ) {
+    if (isEmpty) return;
+    if (subdivided) {
+      _northWest!.forEach(cb);
+      _northEast!.forEach(cb);
+      _southWest!.forEach(cb);
+      _southEast!.forEach(cb);
+    } else {
+      for (var objCounter = _length, i = 0;
+          objCounter > 0 && i < _nodeSize;
+          i += 5) {
+        final $id = _idsView[i]; // id
+        if ($id == 0) continue; // Skip empty slots
+        objCounter--; // Decrease the counter of objects in the child node
+        cb(
+          $id,
+          _objectsView[i + 1], // width
+          _objectsView[i + 2], // height
+          _objectsView[i + 3], // left (x)
+          _objectsView[i + 4], // top (y)
+        );
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // SUBDIVISION
   // --------------------------------------------------------------------------
 
