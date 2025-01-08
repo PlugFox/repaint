@@ -87,7 +87,7 @@ void main() => group(
           //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
           expect(errors, isEmpty);
           // ~ + 1000 us. to query and + 900 us to create hash map, 1945 us
-          final repaintB = _RePaintQuadTreeQueryBBenchmark();
+          final repaintB = _RePaintQuadTreeQueryBenchmark();
           if (report)
             // ignore: dead_code
             repaintB.report();
@@ -316,8 +316,8 @@ class _RePaintQuadTreeQueryMapBenchmark extends BenchmarkBase {
   }
 }
 
-class _RePaintQuadTreeQueryBBenchmark extends BenchmarkBase {
-  _RePaintQuadTreeQueryBBenchmark() : super('RePaint QuadTree queryB');
+class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeQueryBenchmark() : super('RePaint QuadTree query');
 
   late QuadTree qt;
   static const camera = ui.Rect.fromLTWH(250, 250, 500, 500);
