@@ -4,6 +4,32 @@ import 'dart:ui' as ui show Rect;
 
 import 'package:meta/meta.dart';
 
+extension type QueryResult._(Float32List _bytes) {
+  /// Whether this query result is empty and has no objects.
+  bool get isEmpty => _bytes.isEmpty;
+
+  /// Whether this query result is not empty and has objects.
+  bool get isNotEmpty => _bytes.isNotEmpty;
+
+  /// The number of objects in this query result.
+  int get length => _bytes.length ~/ 5;
+
+  /// Returns a map of object identifiers and their bounds.
+  Map<int, ui.Rect> toMap() {
+    final ids = Uint32List.sublistView(_bytes);
+    final results = HashMap<int, ui.Rect>();
+    for (var i = 0; i < _bytes.length; i += 5) {
+      final id = ids[i + 0];
+      final left = _bytes[i + 3];
+      final top = _bytes[i + 4];
+      final width = _bytes[i + 1];
+      final height = _bytes[i + 2];
+      results[id] = ui.Rect.fromLTWH(left, top, width, height);
+    }
+    return results;
+  }
+}
+
 /// {@template quadtree}
 /// A Quadtree data structure that subdivides a 2D space into four quadrants
 /// to speed up collision detection and spatial queries.
@@ -282,7 +308,7 @@ final class QuadTree {
   /// Query the QuadTree for objects that intersect with the given [rect].
   /// Returns a list of object identifiers.
   List<int> queryIds(ui.Rect rect) {
-    if (rect.isEmpty || rect.isInfinite) return const [];
+    if (rect.isEmpty) return const [];
 
     if (rect.left <= boundary.left &&
         rect.top <= boundary.top &&
@@ -337,8 +363,8 @@ final class QuadTree {
 
   /// Query the QuadTree for objects that intersect with the given [rect].
   /// Returns a map of object identifiers and their bounds.
-  Map<int, ui.Rect> query(ui.Rect rect) {
-    if (rect.isEmpty || rect.isInfinite) return const {};
+  Map<int, ui.Rect> queryMap(ui.Rect rect) {
+    if (rect.isEmpty) return const {};
 
     final results = HashMap<int, ui.Rect>();
 
@@ -396,6 +422,98 @@ final class QuadTree {
       }
     }
     return results;
+  }
+
+  /// Query the QuadTree for objects that intersect with the given [rect].
+  /// Returns a map of object identifiers and their bounds.
+  QueryResult queryB(ui.Rect rect) {
+    if (rect.isEmpty) return QueryResult._(Float32List(0));
+
+    final root = _root;
+    if (root == null || isEmpty) return QueryResult._(Float32List(0));
+
+    if (rect.left <= boundary.left &&
+        rect.top <= boundary.top &&
+        rect.right >= boundary.right &&
+        rect.bottom >= boundary.bottom) {
+      final results = Float32List(_length * 5);
+      final ids = Uint32List.sublistView(results);
+      // The query rectangle fully contains the QuadTree boundary.
+      // Return all objects in the QuadTree.
+      for (var counter = 0, i = 0; i < _nodeSize; i += 5) {
+        final $id = _idsView[i];
+        if ($id == 0) continue; // Skip empty slots
+        ids[counter * 5 + 0] = $id;
+        results
+          ..[counter * 5 + 1] = _objects[i + 1]
+          ..[counter * 5 + 2] = _objects[i + 2]
+          ..[counter * 5 + 3] = _objects[i + 3]
+          ..[counter * 5 + 4] = _objects[i + 4];
+        counter++;
+        if (counter == _length) break; // All objects found
+      }
+      return QueryResult._(results);
+    }
+
+    final subdivided = Queue<QuadTree$Node>()..add(root);
+    final leafs = <QuadTree$Node>[];
+    // Find all leaf nodes from the subdivided nodes
+    while (subdivided.isNotEmpty) {
+      final node = subdivided.removeFirst();
+      if (node.isEmpty) continue;
+      if (!_overlaps(node.boundary, rect)) continue;
+      if (node.subdivided) {
+        leafs
+          ..add(node._northWest!)
+          ..add(node._northEast!)
+          ..add(node._southWest!)
+          ..add(node._southEast!);
+      } else {
+        leafs.add(node);
+      }
+    }
+
+    // No leaf nodes found
+    if (leafs.isEmpty) return QueryResult._(Float32List(0));
+
+    // Find all objects in the leaf nodes
+    // hat intersect with the query rectangle
+    var $length = 0;
+    var j = 0;
+    for (var i = 0; i < leafs.length; i++) {
+      final node = leafs[i];
+      if (!_overlaps(node.boundary, rect)) continue;
+      if (i != j) leafs[j] = leafs[i];
+      $length += node.length;
+      j++;
+    }
+    leafs.length = j;
+
+    // Fill the results with the objects from the leaf nodes
+    final data = Float32List($length * 5);
+    final ids = Uint32List.sublistView(data);
+    $length = 0;
+    for (final node in leafs) {
+      node.forEach((id, width, height, left, top) {
+        if (_overlapsLTWH(rect, left, top, width, height)) {
+          // Fill the object
+          ids[$length * 5 + 0] = id;
+          data
+            ..[$length * 5 + 1] = width
+            ..[$length * 5 + 2] = height
+            ..[$length * 5 + 3] = left
+            ..[$length * 5 + 4] = top;
+          $length++;
+        }
+        return true;
+      });
+    }
+
+    // No objects found
+    if ($length == 0) return QueryResult._(Float32List(0));
+
+    // Return the subset of objects that intersect with the query rectangle
+    return QueryResult._(Float32List.sublistView(data, 0, $length * 5));
   }
 
   /// Move the object with the given [id] to the new position
@@ -533,21 +651,7 @@ final class QuadTree {
   /// Visit all nodes in the QuadTree.
   /// The walk stops when it iterates over all nodes or
   /// when the callback returns false.
-  void visit(bool Function(QuadTree$Node node) visitor) {
-    final root = _root;
-    if (root == null) return;
-    final queue = Queue<QuadTree$Node>()..add(root);
-    while (queue.isNotEmpty) {
-      final node = queue.removeFirst();
-      if (!visitor(node)) return;
-      if (node.leaf) continue;
-      queue
-        ..add(node._northWest!)
-        ..add(node._northEast!)
-        ..add(node._southWest!)
-        ..add(node._southEast!);
-    }
-  }
+  void visit(bool Function(QuadTree$Node node) visitor) => root?.visit(visitor);
 
   // --------------------------------------------------------------------------
   // OPTIMIZATION (MERGING)
@@ -997,6 +1101,23 @@ class QuadTree$Node {
   // --------------------------------------------------------------------------
   // VISITORS AND ITTERATORS
   // --------------------------------------------------------------------------
+
+  /// Visit nodes in the QuadTree.
+  /// The walk stops when it iterates over all nodes or
+  /// when the callback returns false.
+  void visit(bool Function(QuadTree$Node node) visitor) {
+    final queue = Queue<QuadTree$Node>()..add(this);
+    while (queue.isNotEmpty) {
+      final node = queue.removeFirst();
+      if (!visitor(node)) return;
+      if (node.leaf) continue;
+      queue
+        ..add(node._northWest!)
+        ..add(node._northEast!)
+        ..add(node._southWest!)
+        ..add(node._southEast!);
+    }
+  }
 
   /// Visit all objects in this node and its children.
   /// The walk stops when it iterates over all objects or

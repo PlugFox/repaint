@@ -70,11 +70,28 @@ void main() => group(
           Flame QuadTree query(RunTime): 2172.233 us.
         */
         test('Static query', () {
-          final repaint = _RePaintQuadTreeQueryBenchmark();
+          // ~ 560 us to query, 567 us.
+          final repaintIds = _RePaintQuadTreeQueryIdsBenchmark();
           if (report)
             // ignore: dead_code
-            repaint.report();
-          final errors = repaint.qt.healthCheck();
+            repaintIds.report();
+          var errors = repaintIds.qt.healthCheck();
+          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+          expect(errors, isEmpty);
+          // ~ + 510 us to query & + 500 us to create hash map, 1170 us.
+          final repaintMap = _RePaintQuadTreeQueryMapBenchmark();
+          if (report)
+            // ignore: dead_code
+            repaintMap.report();
+          errors = repaintMap.qt.healthCheck();
+          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+          expect(errors, isEmpty);
+          // ~ + 1000 us. to query and + 900 us to create hash map, 1945 us
+          final repaintB = _RePaintQuadTreeQueryBBenchmark();
+          if (report)
+            // ignore: dead_code
+            repaintB.report();
+          errors = repaintB.qt.healthCheck();
           //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
           expect(errors, isEmpty);
           final flame = _FlameQuadTreeQueryBenchmark();
@@ -83,7 +100,7 @@ void main() => group(
             flame.report();
           if (!report)
             // ignore: dead_code
-            expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+            expect(repaintB.measure(), lessThanOrEqualTo(flame.measure()));
         });
 
         /*
@@ -245,8 +262,8 @@ class _FlameQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
   }
 }
 
-class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
-  _RePaintQuadTreeQueryBenchmark() : super('RePaint QuadTree query');
+class _RePaintQuadTreeQueryIdsBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeQueryIdsBenchmark() : super('RePaint QuadTree query ids');
 
   late QuadTree qt;
   static const camera = ui.Rect.fromLTWH(250, 250, 500, 500);
@@ -266,6 +283,60 @@ class _RePaintQuadTreeQueryBenchmark extends BenchmarkBase {
   void run() {
     List<int>? results;
     for (var i = 0; i < 100; i++) results = qt.queryIds(camera);
+    // 52 results
+    if (results == null || results.length != 52)
+      throw Exception('Not enough results');
+  }
+}
+
+class _RePaintQuadTreeQueryMapBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeQueryMapBenchmark() : super('RePaint QuadTree query map');
+
+  late QuadTree qt;
+  static const camera = ui.Rect.fromLTWH(250, 250, 500, 500);
+
+  @override
+  void setup() {
+    qt = QuadTree(
+      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
+      capacity: 25,
+    );
+    for (var i = 0; i < 100; i++)
+      qt.insert(ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10));
+    super.setup();
+  }
+
+  @override
+  void run() {
+    Map<int, ui.Rect>? results;
+    for (var i = 0; i < 100; i++) results = qt.queryMap(camera);
+    // 52 results
+    if (results == null || results.length != 52)
+      throw Exception('Not enough results');
+  }
+}
+
+class _RePaintQuadTreeQueryBBenchmark extends BenchmarkBase {
+  _RePaintQuadTreeQueryBBenchmark() : super('RePaint QuadTree queryB');
+
+  late QuadTree qt;
+  static const camera = ui.Rect.fromLTWH(250, 250, 500, 500);
+
+  @override
+  void setup() {
+    qt = QuadTree(
+      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
+      capacity: 25,
+    );
+    for (var i = 0; i < 100; i++)
+      qt.insert(ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10));
+    super.setup();
+  }
+
+  @override
+  void run() {
+    Map<int, ui.Rect>? results;
+    for (var i = 0; i < 100; i++) results = qt.queryB(camera).toMap();
     // 52 results
     if (results == null || results.length != 52)
       throw Exception('Not enough results');

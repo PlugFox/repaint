@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:repaint/repaint.dart';
 import 'package:test/test.dart';
@@ -74,7 +74,7 @@ void main() => group('Quadtree', () {
       test('Create', () {
         expect(
           () => QuadTree(
-            boundary: const Rect.fromLTWH(0, 0, 100, 100),
+            boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
             capacity: 4,
           ),
           returnsNormally,
@@ -83,11 +83,11 @@ void main() => group('Quadtree', () {
 
       test('Insert', () {
         final qt = QuadTree(
-          boundary: const Rect.fromLTWH(0, 0, 100, 100),
+          boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
           capacity: 4,
         );
         expect(
-          () => qt.insert(const Rect.fromLTWH(10, 10, 10, 10)),
+          () => qt.insert(const ui.Rect.fromLTWH(10, 10, 10, 10)),
           returnsNormally,
         );
       });
@@ -138,4 +138,43 @@ void main() => group('Quadtree', () {
           isEmpty,
         );
       }); */
+
+      test('Query', () {
+        final qt = QuadTree(
+          boundary: const ui.Rect.fromLTWH(0, 0, 100, 100),
+          capacity: 6,
+        )..insert(const ui.Rect.fromLTWH(10, 10, 10, 10));
+        expect(
+          () => qt.queryB(const ui.Rect.fromLTWH(10, 10, 10, 10)),
+          returnsNormally,
+        );
+        var result = qt.queryB(const ui.Rect.fromLTWH(10, 10, 10, 10));
+        expect(
+          result,
+          isA<QueryResult>()
+              .having(
+                (qr) => qr.isEmpty,
+                'isEmpty',
+                isFalse,
+              )
+              .having(
+                (qr) => qr.isNotEmpty,
+                'isNotEmpty',
+                isTrue,
+              )
+              .having(
+                (qr) => qr.length,
+                'length',
+                1,
+              ),
+        );
+        final map = result.toMap();
+        expect(
+          map,
+          allOf(
+            isA<Map<int, ui.Rect>>(),
+            hasLength(1),
+          ),
+        );
+      });
     });
