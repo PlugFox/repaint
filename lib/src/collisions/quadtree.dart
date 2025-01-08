@@ -203,6 +203,7 @@ final class QuadTree {
       parent: parent,
       boundary: boundary,
       capacity: capacity,
+      depth: parent == null ? 0 : parent.depth + 1,
       objectsView: objectsView,
       idsView: idsView,
     );
@@ -484,12 +485,34 @@ final class QuadTree {
 
   /// Clears the QuadTree and resets all properties.
   void clear() {
+    // Break the references between nodes and quadrants and clear the nodes
+    final queue = Queue<QuadTree$Node?>()..add(_root);
+    while (queue.isNotEmpty) {
+      final node = queue.removeFirst();
+      if (node == null) continue;
+      if (node.subdivided) {
+        queue
+          ..add(node._northWest)
+          ..add(node._northEast)
+          ..add(node._southWest)
+          ..add(node._southEast);
+      }
+      node
+        .._length = 0
+        .._objectsCount = 0
+        .._subdivided = false
+        .._northWest = null
+        .._northEast = null
+        .._southWest = null
+        .._southEast = null;
+    }
+    _root = null;
+
     // Clear nodes
     _nodesCount = 0;
     _recycledNodesCount = 0;
     _nodes = List<QuadTree$Node?>.filled(64, null, growable: false);
     _recycledNodes = Uint32List(64);
-    _root = null;
 
     // Clear objects
     _length = 0;
@@ -777,6 +800,7 @@ class QuadTree$Node {
     required this.parent,
     required this.boundary,
     required this.capacity,
+    required this.depth,
     required Float32List objectsView,
     required Uint32List idsView,
   })  : offset = id * capacity * 4,
@@ -807,6 +831,11 @@ class QuadTree$Node {
   /// The maximum number of objects that can be stored in a node before it
   /// subdivides.
   final int capacity;
+
+  /// The depth of this node in the QuadTree.
+  /// The root node has a depth of 0.
+  /// The depth increases by 1 for each level of the QuadTree.
+  final int depth;
 
   /// The offset of the first object in the objects list.
   final int offset;
@@ -882,7 +911,7 @@ class QuadTree$Node {
     if (!_overlaps(boundary, rect)) return null;
 
     // Should we insert the object directly into this node?
-    if (_objectsCount < capacity && leaf) {
+    if (leaf && _objectsCount < capacity) {
       // Get next id
       final objectId = oldId ?? tree._getNextId();
 
