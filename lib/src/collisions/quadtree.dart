@@ -28,6 +28,11 @@ import 'package:meta/meta.dart';
 // значит они должны обрабатываться как потенциальная коллизия.
 // Mike Matiunin <plugfox@gmail.com>, 08 January 2025
 
+// TODO(plugfox): Возможно добавить Uint32List на соответсвие id объекта и его
+// оффсетом в массиве объектов. Это позволит быстро находить объект по id
+// а также идентификатор ноды по оффсету объекта.
+// Mike Matiunin <plugfox@gmail.com>, 08 January 2025
+
 /// View over a [Float32List] that represents a query result.
 extension type QueryResult._(Float32List _bytes) {
   /// Whether this query result is empty and has no objects.
