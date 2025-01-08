@@ -108,19 +108,19 @@ void main() => group(
         });
 
         test('Capacity', () {
-          final results = <int, double>{};
+          final results = <int, String>{};
           for (var i = 6; i < 32; i += 2) {
             final repaint = _RePaintQuadTreeCapacityBenchmark(i);
-            results[i] = repaint.measure();
+            final us = repaint.measure();
+            results[i] = '$us us. Max depth ${repaint.maxDepth} nodes';
             final errors = repaint.qt.healthCheck();
             //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
             expect(errors, isEmpty);
           }
           if (report)
             // ignore: dead_code, avoid_print
-            print(results.entries
-                .map((e) => '${e.key}: ${e.value} us.')
-                .join('\n'));
+            print(
+                results.entries.map((e) => '${e.key}: ${e.value}').join('\n'));
         });
       },
     );
@@ -393,6 +393,7 @@ class _RePaintQuadTreeCapacityBenchmark extends BenchmarkBase {
   late QuadTree qt;
   final int capacity;
   static const ui.Rect camera = ui.Rect.fromLTWH(250, 250, 100, 100);
+  int maxDepth = 0;
 
   @override
   void setup() {
@@ -430,6 +431,12 @@ class _RePaintQuadTreeCapacityBenchmark extends BenchmarkBase {
     for (var i = 0; i < 100; i++) results = qt.queryIds(camera);
     if (results == null || results.isEmpty)
       throw Exception('Not enough results');
+
+    // Visit and find max depth
+    qt.visit((node) {
+      if (node.leaf && node.depth > maxDepth) maxDepth = node.depth;
+      return true;
+    });
 
     // Remove
     while (queue.isNotEmpty) qt.remove(queue.removeFirst());
