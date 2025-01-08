@@ -37,6 +37,34 @@ extension type QueryResult._(Float32List _bytes) {
     }
     return results;
   }
+
+  /// Visit all objects in this query result.
+  /// The walk stops when it iterates over all objects or
+  /// when the callback returns false.
+  void forEach(
+    bool Function(
+      int id,
+      double width,
+      double height,
+      double left,
+      double top,
+    ) cb,
+  ) {
+    if (isEmpty) return;
+    final ids = Uint32List.sublistView(_bytes);
+    final data = _bytes;
+    for (var i = 0; i < _bytes.length; i += 5) {
+      final next = cb(
+        ids[i], // id
+        data[i + 1], // width
+        data[i + 2], // height
+        data[i + 3], // left (x)
+        data[i + 4], // top (y)
+      );
+      if (next) continue;
+      return;
+    }
+  }
 }
 
 /// {@template quadtree}
