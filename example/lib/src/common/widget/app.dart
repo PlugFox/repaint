@@ -7,7 +7,9 @@ import 'package:repaintexample/src/feature/home/home_screen.dart';
 /// {@endtemplate}
 class App extends StatefulWidget {
   /// {@macro app}
-  const App({super.key});
+  const App({String? initalRoute, super.key}) : _initalRoute = initalRoute;
+
+  final String? _initalRoute;
 
   /// Change the navigation stack.
   static void navigate(BuildContext context,
@@ -39,6 +41,19 @@ class _AppState extends State<App> {
   /// The pages to display.
   final ValueNotifier<List<Page<void>>> _pages =
       ValueNotifier<List<Page<void>>>(defaultPages);
+
+  @override
+  void initState() {
+    super.initState();
+    final initialRoute = widget._initalRoute;
+    if (initialRoute != null &&
+        initialRoute.isNotEmpty &&
+        initialRoute != '/') {
+      final uri = Uri.tryParse(initialRoute);
+      final page = $routes[uri?.pathSegments.firstOrNull]?.call(null);
+      if (page != null) navigate((_) => [page]);
+    }
+  }
 
   /// Changes the navigation stack.
   void navigate(List<Page<void>> Function(List<Page<void>> pages) change) {

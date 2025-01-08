@@ -44,6 +44,10 @@ class HomeScreen extends StatelessWidget {
                     title: 'Sunflower',
                     page: 'sunflower',
                   ),
+                  HomeTile(
+                    title: 'QuadTree',
+                    page: 'quadtree',
+                  ),
                 ],
               ),
             ),

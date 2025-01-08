@@ -54,5 +54,3 @@ dev_dependencies:
   benchmark_harness: ^2.3.1
   flame: ^1.23.0
   vector_math: ^2.1.4
-
-flutter:

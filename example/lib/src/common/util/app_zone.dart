@@ -1,11 +1,17 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:l/l.dart';
 
 /// Catch all application errors and logs.
 void appZone(FutureOr<void> Function() fn) => l.capture<void>(
       () => runZonedGuarded<void>(
-        () => fn(),
+        () {
+          final binding = WidgetsFlutterBinding.ensureInitialized()
+            ..deferFirstFrame();
+          fn();
+          binding.allowFirstFrame();
+        },
         l.e,
       ),
       const LogOptions(
