@@ -65,3 +65,10 @@ flutter:
     - shaders/simple.frag
     - shaders/uniforms.frag
     - shaders/gradient.frag
+
+  fonts:
+    - family: RobotoMono
+      fonts:
+        - asset: assets/fonts/RobotoMono-Regular.ttf
+        - asset: assets/fonts/RobotoMono-Bold.ttf
+          weight: 700

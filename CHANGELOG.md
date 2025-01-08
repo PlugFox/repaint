@@ -1,11 +1,16 @@
+## 0.0.6
+
+- **ADDED**: Basic `QuadTree` implementation and example
+- **CHANGED**: Minimum Flutter version is now 3.27.0
+
 ## 0.0.5
 
-- **CHANGED**: `frameRate` is replaced with `needsPaint` in `RePainter` delegate.
+- **CHANGED**: `frameRate` is replaced with `needsPaint` in `RePainter` delegate
 
 ## 0.0.4
 
 - **ADDED**: More examples
-- **CHANGED**: Change interface of `RePainter` delegate.
+- **CHANGED**: Change interface of `RePainter` delegate
 
 ## 0.0.3
 

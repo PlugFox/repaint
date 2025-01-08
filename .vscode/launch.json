@@ -24,6 +24,20 @@
         "--dart-define-from-file=config/development.json",
       ],
       "env": {}
+    },
+    {
+      "name": "Example (Release, Web, CanvasKit)",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "request": "launch",
+      "flutterMode": "release",
+      "cwd": "${workspaceFolder}/example",
+      "args": [
+        "--dart-define-from-file=config/development.json",
+        "--device-id=chrome",
+        "--web-port=3000",
+      ],
+      "env": {}
     }
   ]
 }
