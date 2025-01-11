@@ -222,7 +222,7 @@ final class QuadTree {
   /// Recycled nodes ids in this manager.
   Uint32List _recycledNodes;
 
-  /// Number of active objects in the QuadTree.
+  /// Number of active nodes in the QuadTree.
   int get nodes => _nodesCount - _recycledNodesCount;
 
   /// List of nodes in the QuadTree.
