@@ -204,7 +204,7 @@ final class QuadTree {
   /// [1] - top position (y)
   /// [2] - width
   /// [3] - height
-  static const _objectSize = 4;
+  static const int _objectSize = 4;
 
   /// Initial reserved size for the each array withing the QuadTree.
   static const int _reserved = 64;
