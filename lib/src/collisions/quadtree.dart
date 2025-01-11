@@ -140,18 +140,28 @@ final class QuadTree {
     // Maximum depth of the QuadTree.
     int depth = 12,
   }) {
-    assert(boundary.isFinite, 'The boundary must be finite.');
-    assert(!boundary.isEmpty, 'The boundary must not be empty.');
+    // Make copy of the boundary
+    final rect = ui.Rect.fromLTRB(
+      boundary.left,
+      boundary.top,
+      boundary.right,
+      boundary.bottom,
+    );
+    // Validate the parameters
+    assert(rect.isFinite, 'The boundary must be finite.');
+    assert(!rect.isEmpty, 'The boundary must not be empty.');
     assert(capacity >= 6, 'The capacity must be greater or equal than 6.');
     assert(depth >= 1, 'The maximum depth must be greater or equal than 1.');
     assert(depth <= 7000, 'The maximum depth must be less or equal than 7000.');
+    // Initialize the QuadTree
     final nodes = List<QuadTree$Node?>.filled(_reserved, null, growable: false);
     final recycledNodes = Uint32List(_reserved);
     final objects = Float32List(_reserved * _objectSize);
     final recycledIds = Uint32List(_reserved);
     final id2node = Uint32List(_reserved);
+    // Create the QuadTree
     return QuadTree._internal(
-      boundary: boundary,
+      boundary: rect,
       capacity: capacity.clamp(6, 10000),
       depth: depth.clamp(1, 7000),
       nodes: nodes,
