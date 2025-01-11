@@ -223,7 +223,7 @@ final class QuadTree {
   Uint32List _recycledNodes;
 
   /// Number of active objects in the QuadTree.
-  int get nodesCount => _nodesCount - _recycledNodesCount;
+  int get nodes => _nodesCount - _recycledNodesCount;
 
   /// List of nodes in the QuadTree.
   /// Each index in the list is the identifier of the node.
@@ -969,8 +969,8 @@ final class QuadTree {
     });
 
     // Check if all nodes are visited
-    if (nodesCount != nodeIds.length)
-      errors.add('Invalid nodes count: $nodesCount != ${nodeIds.length}.');
+    if (nodes != nodeIds.length)
+      errors.add('Invalid nodes count: $nodes != ${nodeIds.length}.');
 
     return errors;
   }
@@ -981,7 +981,7 @@ final class QuadTree {
 
   @override
   String toString() => 'QuadTree{'
-      'nodes: $nodesCount, '
+      'nodes: $nodes, '
       'objects: $length'
       '}';
 }

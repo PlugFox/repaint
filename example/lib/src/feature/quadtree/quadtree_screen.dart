@@ -323,7 +323,7 @@ class QuadTreePainter extends RePainterBase {
       ..write(' | ')
       ..write('Nodes:')
       ..write(nbsp)
-      ..write(_quadTree.nodesCount);
+      ..write(_quadTree.nodes);
     _textPainter
       ..text = TextSpan(
         text: status.toString(),

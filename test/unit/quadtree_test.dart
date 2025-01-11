@@ -168,7 +168,7 @@ void main() => group('Quadtree', () {
           capacity: 6,
         );
         expect(qt.length, equals(0));
-        expect(qt.nodesCount, equals(0));
+        expect(qt.nodes, equals(0));
         for (var i = 0; i < 10; i++) {
           expect(
             () => qt.insert(ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10)),
@@ -176,7 +176,7 @@ void main() => group('Quadtree', () {
           );
         }
         expect(qt.length, equals(10));
-        expect(qt.nodesCount, greaterThan(0));
+        expect(qt.nodes, greaterThan(0));
         expect(() => qt.get(10), returnsNormally);
         expect(
           qt.get(10),
