@@ -247,7 +247,7 @@ final class QuadTree {
   bool get isEmpty => _length == 0;
 
   /// Whether this tree is not empty and has objects.
-  bool get isNotEmpty => _length > 0;
+  bool get isNotEmpty => _length != 0;
 
   /// List of objects in the QuadTree.
   ///
@@ -851,7 +851,7 @@ final class QuadTree {
   }) {
     // Get next id
     final int nodeId;
-    if (_recycledNodesCount > 0) {
+    if (_recycledNodesCount != 0) {
       // Reuse recycled node id
       nodeId = _recycledNodes[--_recycledNodesCount];
     } else {
@@ -877,7 +877,7 @@ final class QuadTree {
   /// Get the next identifier for an object in the QuadTree.
   @pragma('vm:prefer-inline')
   int _getNextObjectId() {
-    if (_recycledIdsCount > 0) {
+    if (_recycledIdsCount != 0) {
       // Reuse recycled entity
       return _recycledIds[--_recycledIdsCount];
     } else {
@@ -1044,7 +1044,7 @@ final class QuadTree$Node {
 
   /// Whether this node is not empty.
   /// Returns true if the node has objects stored in it or its children.
-  bool get isNotEmpty => _length > 0;
+  bool get isNotEmpty => _length != 0;
 
   /// Unordered set of object identifiers stored in this node.
   Iterable<int> get ids => _ids;
