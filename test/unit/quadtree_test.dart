@@ -137,7 +137,7 @@ void main() => group('Quadtree', () {
         var result = qt.query(const ui.Rect.fromLTWH(10, 10, 10, 10));
         expect(
           result,
-          isA<QueryResult>()
+          isA<QuadTree$QueryResult>()
               .having(
                 (qr) => qr.isEmpty,
                 'isEmpty',
