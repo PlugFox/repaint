@@ -1,3 +1,8 @@
+## 0.0.7+1
+
+- **ADDED**: Added `changeSize` method to `QuadTree`.
+- **CHANGED**: Small changes in `QuadTree` documentation.
+
 ## 0.0.7
 
 - **CHANGED**: Changed `QuadTree` implementation.
