@@ -106,8 +106,8 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree move(RunTime): 199.9547 us.
-          Flame QuadTree move(RunTime): 306.89086614173226 us.
+          RePaint QuadTree move(RunTime): 121.95089894606323 us.
+          Flame QuadTree move(RunTime): 310.9901587301587 us.
         */
         test('Move', () {
           final repaint = _RePaintQuadTreeMoveBenchmark();
@@ -127,19 +127,21 @@ void main() => group(
         });
 
         /*
-          6: 4797.539325842697 us. Max depth 10 nodes
-          8: 4889.759550561797 us. Max depth 9 nodes
-          10: 3929.9825174825173 us. Max depth 8 nodes
-          12: 3874.2534965034965 us. Max depth 8 nodes
-          14: 3927.8164335664337 us. Max depth 7 nodes
-          16: 3682.304195804196 us. Max depth 7 nodes
-          18: 3289.215892053973 us. Max depth 7 nodes
-          20: 3391.6356821589206 us. Max depth 7 nodes
-          22: 3264.529235382309 us. Max depth 6 nodes
-          24: 3314.206896551724 us. Max depth 6 nodes
-          26: 3485.5034965034965 us. Max depth 6 nodes
-          28: 3630.701048951049 us. Max depth 6 nodes
-          30: 3602.9562937062938 us. Max depth 6 nodes
+          18..24 - Best capacity
+
+          6: 4128.678 us. Max depth 8 nodes
+          8: 4361.878 us. Max depth 8 nodes
+          10: 3336.8653846153848 us. Max depth 8 nodes
+          12: 3393.3898050974512 us. Max depth 8 nodes
+          14: 3488.1083916083917 us. Max depth 7 nodes
+          16: 3500.551724137931 us. Max depth 7 nodes
+          18: 2740.64125 us. Max depth 7 nodes
+          20: 2738.4475 us. Max depth 7 nodes
+          22: 2809.03625 us. Max depth 6 nodes
+          24: 2790.7125 us. Max depth 6 nodes
+          26: 2818.23 us. Max depth 6 nodes
+          28: 2896.32125 us. Max depth 6 nodes
+          30: 2836.28125 us. Max depth 6 nodes
         */
         test('Capacity', () {
           final results = <int, String>{};

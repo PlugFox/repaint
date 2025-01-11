@@ -83,6 +83,27 @@ extension type QuadTree$QueryResult._(Float32List _bytes) {
 /// The QuadTree can store objects with a width, height, and position.
 /// Positions are represented as a point (x, y) in the 2D space at the top-left
 /// corner of the object.
+///
+/// The QuadTree is a tree data structure in which each internal node has
+/// exactly four children: North-West, North-East, South-West, and South-East.
+/// Each node represents a rectangular region of the space.
+///
+/// The QuadTree is a spatial partitioning algorithm that is used to subdivide
+/// a two-dimensional space into smaller regions for efficient collision
+/// detection and spatial queries.
+///
+/// [boundary] is the boundary of the QuadTree, usually the size of the game
+/// world coordinates or the screen size.
+///
+/// [capacity] is the maximum number of objects that can be stored in a node
+/// before it subdivides.
+/// Suitable values for the capacity are usually between 18 and 24.
+/// Should be always greater or equal than 6.
+///
+/// [depth] is the maximum depth of the QuadTree. If the depth is reached,
+/// the QuadTree will not subdivide further and [capacity] will be ignored.
+/// Suitable values for the depth are usually between 8 and 16.
+/// Should be always greater or equal than 1.
 /// {@endtemplate}
 final class QuadTree {
   /// Creates a new Quadtree with [boundary] and a [capacity].
@@ -92,9 +113,9 @@ final class QuadTree {
     // Boundary of the QuadTree.
     required ui.Rect boundary,
     // Capacity of the each QuadTree node.
-    int capacity = 18,
+    int capacity = 24,
     // Maximum depth of the QuadTree.
-    int depth = 8,
+    int depth = 12,
   }) {
     assert(boundary.isFinite, 'The boundary must be finite.');
     assert(!boundary.isEmpty, 'The boundary must not be empty.');
@@ -271,7 +292,7 @@ final class QuadTree {
   /// Get rectangle bounds of the object with the given [objectId].
   ui.Rect get(int objectId) {
     final objects = _objects;
-    if (objectId < 0 || objectId >= _nextObjectId || objectId >= objects.length)
+    if (objectId < 0 || objectId >= objects.length)
       throw ArgumentError('Object with id $objectId not found.');
     final offset = objectId * _objectSize;
     return ui.Rect.fromLTWH(
@@ -318,6 +339,14 @@ final class QuadTree {
       // Do not change the object's id.
       node._remove(objectId);
 
+      // Mark the node and all its parents as dirty
+      // and possibly needs optimization.
+      // Also decrease the length of the node and all its parents.
+      for (QuadTree$Node? n = node; n != null; n = n.parent) {
+        n._dirty = true;
+        n._length--;
+      }
+
       // Insert the object back into the QuadTree at the new position
       // with the same id.
       final nodeId = root._insert(objectId, left, top, width, height);
@@ -328,9 +357,7 @@ final class QuadTree {
   /// Removes [objectId] from the Quadtree if it exists.
   /// After removal, tries merging nodes upward if possible.
   bool remove(int objectId) {
-    if (objectId < 0 ||
-        objectId >= _nextObjectId ||
-        objectId >= _id2node.length) return false; // Invalid id
+    if (objectId < 0 || objectId >= _id2node.length) return false; // Invalid id
     final node = _nodes[_id2node[objectId]];
     if (node == null) return false; // Node not found
 

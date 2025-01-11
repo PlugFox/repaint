@@ -106,7 +106,6 @@ void main() => group('Quadtree', () {
         );
         final id = qt.insert(const ui.Rect.fromLTWH(10, 10, 10, 10));
         expect(id, isNotNull);
-        id!;
         expect(() => qt.move(id, 10, 10), returnsNormally);
         expect(() => qt.move(id, 20, 20), returnsNormally);
         expect(qt.length, equals(1));
@@ -120,7 +119,6 @@ void main() => group('Quadtree', () {
         final id = qt.insert(const ui.Rect.fromLTWH(10, 10, 10, 10));
         expect(id, isNotNull);
         expect(qt.length, equals(1));
-        id!;
         expect(() => qt.remove(id), returnsNormally);
         expect(qt.length, equals(0));
       });
@@ -193,6 +191,7 @@ void main() => group('Quadtree', () {
             returnsNormally,
           );
         }
+        expect(qt.length, equals(10));
         expect(
           qt.query(const ui.Rect.fromLTWH(5, 5, 1000, 1000)).length,
           equals(10),
@@ -202,7 +201,8 @@ void main() => group('Quadtree', () {
           qt.query(const ui.Rect.fromLTWH(5, 5, 1000, 1000)).length,
           equals(10),
         );
-        expect(() => qt.remove(10), returnsNormally);
+        expect(qt.length, equals(10));
+        expect(() => qt.remove(9), returnsNormally);
         expect(() => qt.remove(5), returnsNormally);
         expect(qt.length, equals(8));
         expect(
@@ -210,7 +210,7 @@ void main() => group('Quadtree', () {
           allOf(
             isA<List<int>>(),
             hasLength(8),
-            containsAll([1, 2, 3, 4, 6, 7, 8, 9]),
+            containsAll([0, 1, 2, 3, 4, 6, 7, 8]),
           ),
         );
         expect(qt.optimize, returnsNormally);
