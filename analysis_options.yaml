@@ -56,9 +56,9 @@ linter:
     always_use_package_imports: false
     prefer_final_locals: false
     avoid_escaping_inner_quotes: false
-    curly_braces_in_flow_control_structures: false
 
     # Enabled
+    curly_braces_in_flow_control_structures: true
     use_named_constants: true
     unnecessary_constructor_name: true
     sort_constructors_first: true

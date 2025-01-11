@@ -1,4 +1,5 @@
 // ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
+// ignore_for_file: curly_braces_in_flow_control_structures
 
 import 'dart:collection';
 import 'dart:typed_data';
