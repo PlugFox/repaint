@@ -250,10 +250,10 @@ class QuadTreePainter extends RePainterBase {
       var counter = 0;
       result.forEach((
         int id,
-        double width,
-        double height,
         double left,
         double top,
+        double width,
+        double height,
       ) {
         _points
           ..[counter] = left + width / 2 - boundary.left
