@@ -16,9 +16,9 @@ void main() => group(
         var report = true;
 
         /*
-          RePaint QuadTree inserts 2(RunTime): 800.5065 us.
-          RePaint QuadTree inserts(RunTime): 1139.6285 us.
-          Flame QuadTree inserts(RunTime): 26268.465753424658 us.
+          RePaint QuadTree inserts 2(RunTime): 876.593 us.
+          RePaint QuadTree inserts(RunTime): 1124.549 us.
+          Flame QuadTree inserts(RunTime): 26043.75 us.
         */
         test('Inserts', () {
           final repaint2 = _RePaintQuadTreeInserts2Benchmark();
@@ -47,9 +47,9 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree inserts & removes 2(RunTime): 96.9789562708323 us.
-          RePaint QuadTree inserts & removes(RunTime): 118.64545881800024 us.
-          Flame QuadTree inserts & removes(RunTime): 2136.175 us.
+          RePaint QuadTree inserts & removes 2(RunTime): 110.91873528782367 us.
+          RePaint QuadTree inserts & removes(RunTime): 120.44225120432381 us.
+          Flame QuadTree inserts & removes(RunTime): 2268.315 us.
         */
         test('Inserts and removes', () {
           final repaint2 = _RePaintQuadTreeInsertsAndRemoves2Benchmark();
@@ -76,8 +76,10 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree query(RunTime): 549.48475 us.
-          Flame QuadTree query(RunTime): 2172.233 us.
+          RePaint QuadTree query ids(RunTime): 569.046 us.
+          RePaint QuadTree query map(RunTime): 1259.431 us.
+          RePaint QuadTree query(RunTime): 1589.3613193403298 us.
+          Flame QuadTree query(RunTime): 2431.795 us.
         */
         test('Static query', () {
           // ~ 560 us to query, 567 us.
@@ -114,8 +116,8 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree move(RunTime): 223.54698849033412 us.
-          Flame QuadTree move(RunTime): 332.8446457990115 us.
+          RePaint QuadTree move(RunTime): 199.9547 us.
+          Flame QuadTree move(RunTime): 306.89086614173226 us.
         */
         test('Move', () {
           final repaint = _RePaintQuadTreeMoveBenchmark();
@@ -134,6 +136,21 @@ void main() => group(
             expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
         });
 
+        /*
+          6: 4797.539325842697 us. Max depth 10 nodes
+          8: 4889.759550561797 us. Max depth 9 nodes
+          10: 3929.9825174825173 us. Max depth 8 nodes
+          12: 3874.2534965034965 us. Max depth 8 nodes
+          14: 3927.8164335664337 us. Max depth 7 nodes
+          16: 3682.304195804196 us. Max depth 7 nodes
+          18: 3289.215892053973 us. Max depth 7 nodes
+          20: 3391.6356821589206 us. Max depth 7 nodes
+          22: 3264.529235382309 us. Max depth 6 nodes
+          24: 3314.206896551724 us. Max depth 6 nodes
+          26: 3485.5034965034965 us. Max depth 6 nodes
+          28: 3630.701048951049 us. Max depth 6 nodes
+          30: 3602.9562937062938 us. Max depth 6 nodes
+        */
         test('Capacity', () {
           final results = <int, String>{};
           for (var i = 6; i < 32; i += 2) {
