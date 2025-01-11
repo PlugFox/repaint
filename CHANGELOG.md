@@ -1,3 +1,7 @@
+## 0.0.7
+
+- **CHANGED**: Changed `QuadTree` implementation.
+
 ## 0.0.6
 
 - **ADDED**: Basic `QuadTree` implementation and example
