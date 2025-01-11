@@ -336,9 +336,28 @@ final class QuadTree {
     );
   }
 
+  /// Change the size of the object with the given [objectId] to the new
+  /// [width] and [height].
+  void changeSize(int objectId, {double? width, double? height}) {
+    if (width == null && height == null) return;
+    final objects = _objects;
+    if (objectId < 0 || objectId >= objects.length) return;
+    final offset = objectId * _objectSize;
+    if (width != null) objects[offset + 2] = width;
+    if (height != null) objects[offset + 3] = height;
+  }
+
   /// Move the object with the given [objectId] to the new position
   /// [left] (x), [top] (y).
-  void move(int objectId, double left, double top) {
+  ///
+  /// Optionally, you can also change the [width] and [height] of the object.
+  void move(
+    int objectId,
+    double left,
+    double top, {
+    double? width,
+    double? height,
+  }) {
     final root = _root;
     if (root == null) return;
     if (objectId < 0 || objectId >= _id2node.length) return;
@@ -353,17 +372,20 @@ final class QuadTree {
     objects[offset + 0] = left;
     objects[offset + 1] = top;
 
+    if (width != null) objects[offset + 2] = width;
+    if (height != null) objects[offset + 3] = height;
+
     // Get the object's width and height.
-    final width = objects[offset + 2];
-    final height = objects[offset + 3];
+    final w = width ?? objects[offset + 2];
+    final h = height ?? objects[offset + 3];
 
     // Check if the object still fits in the same node's boundary.
     if (node == null) {
       assert(false, 'Current node not found for object with id $objectId.');
       // Insert the object to the QuadTree at the new position.
-      final nodeId = root._insert(objectId, left, top, width, height);
+      final nodeId = root._insert(objectId, left, top, w, h);
       _id2node[objectId] = nodeId;
-    } else if (_overlapsLTWH(node.boundary, left, top, width, height)) {
+    } else if (_overlapsLTWH(node.boundary, left, top, w, h)) {
       // The object still fits in the same node's boundary.
       // Coordinate already updated - nothing to do.
     } else {
@@ -382,7 +404,7 @@ final class QuadTree {
 
       // Insert the object back into the QuadTree at the new position
       // with the same id.
-      final nodeId = root._insert(objectId, left, top, width, height);
+      final nodeId = root._insert(objectId, left, top, w, h);
       _id2node[objectId] = nodeId;
     }
   }
