@@ -4,6 +4,8 @@ import 'dart:collection';
 import 'dart:typed_data';
 import 'dart:ui' as ui show Rect;
 
+import 'package:meta/meta.dart';
+
 /// View over a [Float32List] that represents a query result.
 extension type QuadTree$QueryResult._(Float32List _bytes) {
   /// Returns the number of bytes reserved for each object in the query result.
@@ -244,7 +246,13 @@ final class QT {
     _length++;
 
     // Find the node to insert the object
-    final nodeId = root._insert(objectId, rect);
+    final nodeId = root._insert(
+      objectId,
+      rect.left,
+      rect.top,
+      rect.width,
+      rect.height,
+    );
 
     // Store the reference between the id and the current node.
     _id2node[objectId] = nodeId;
@@ -264,6 +272,49 @@ final class QT {
       objects[offset + 2],
       objects[offset + 3],
     );
+  }
+
+  /// Move the object with the given [objectId] to the new position
+  /// [left] (x), [top] (y).
+  void move(int objectId, double left, double top) {
+    final root = _root;
+    if (root == null) return;
+    if (objectId < 0 || objectId >= _id2node.length) return;
+    final nodeId = _id2node[objectId];
+    if (nodeId >= _nodes.length) return;
+    final node = _nodes[nodeId];
+
+    final objects = _objects;
+    final offset = objectId * _objectSize;
+
+    // Update the object's coordinates.
+    objects[offset + 0] = left;
+    objects[offset + 1] = top;
+
+    // Get the object's width and height.
+    final width = objects[offset + 2];
+    final height = objects[offset + 3];
+
+    // Check if the object still fits in the same node's boundary.
+    if (node == null) {
+      assert(false, 'Current node not found for object with id $objectId.');
+      // Insert the object to the QuadTree at the new position.
+      final nodeId = root._insert(objectId, left, top, width, height);
+      _id2node[objectId] = nodeId;
+    } else if (_overlapsLTWH(node.boundary, left, top, width, height)) {
+      // The object still fits in the same node's boundary.
+      // Coordinate already updated - nothing to do.
+    } else {
+      // The object moved outside the boundary of the QuadTree.
+      // Remove the object from the QuadTree and insert it back.
+      // Do not change the object's id.
+      node._remove(objectId);
+
+      // Insert the object back into the QuadTree at the new position
+      // with the same id.
+      final nodeId = root._insert(objectId, left, top, width, height);
+      _id2node[objectId] = nodeId;
+    }
   }
 
   /// Removes [objectId] from the Quadtree if it exists.
@@ -772,6 +823,98 @@ final class QT {
   }
 
   // --------------------------------------------------------------------------
+  // TESTING, DEBUG AND HEALTHCHECKS
+  // --------------------------------------------------------------------------
+
+  /// Health check for the QuadTree node.
+  /// Returns a list of problems found in the QuadTree.
+  ///
+  /// Main purpose is to check if the QuadTree is in a valid state.
+  /// You should not rely on this method for production code as it is
+  /// very-verry slow and expensive.
+  /// Better to use this method for debugging and testing.
+  ///
+  /// Should be called only after [optimize] method.
+  @visibleForTesting
+  List<String> healthCheck() {
+    final errors = <String>[];
+    if (capacity < 6) errors.add('Capacity must be greater or equal than 6.');
+    final nodeIds = <int>{};
+    if (_root?._dirty ?? false)
+      errors.add('Root node is dirty (call optimize).');
+    //final objects = <int>{};
+    visit((node) {
+      if (nodeIds.contains(node.id))
+        errors.add('Node #${node.id} is visited more than once or duplicated.');
+      nodeIds.add(node.id);
+      if (!identical(_nodes[node.id], node))
+        errors.add('Node #${node.id} is not stored in the nodes array.');
+      if (node._dirty) {
+        errors.add('Node #${node.id} is dirty (call optimize).');
+      }
+      if (node.leaf) {
+        if (node._subdivided)
+          errors.add('Leaf node #${node.id} is subdivided.');
+        if (node.length > capacity && node.depth < depth)
+          errors.add('Leaf node #${node.id} has too many objects.');
+        if (node._ids.length != node.length)
+          errors.add('Leaf node #${node.id} has invalid objects count.');
+
+        for (final objectId in node._ids) {
+          if (objectId >= _nextObjectId)
+            errors.add('Leaf node #${node.id} has invalid object id.');
+          if (_id2node[objectId] != node.id)
+            errors.add('Leaf node #${node.id} has invalid object reference.');
+        }
+
+        var child = node;
+        var parent = node.parent;
+        while (true) {
+          if (parent == null) {
+            if (!identical(child, _root))
+              errors.add('Leaf node #${child.id} has no parent.');
+            break; // Root node
+          }
+
+          if (child._length > parent.length)
+            errors.add('Leaf node #${child.id} has more objects than parent.');
+          if (!nodeIds.contains(parent.id))
+            errors.add('Parent node #${parent.id} is not visited.');
+
+          child = parent;
+          parent = parent.parent;
+        }
+      } else {
+        if (!node._subdivided)
+          errors.add('Subdivided node #${node.id} is not subdivided.');
+        if (node.length != 0)
+          errors.add('Subdivided node #${node.id} has objects.');
+        if (node._length < 1)
+          errors.add('Subdivided node #${node.id} is empty (call optimize).');
+        if (node._length < capacity) {
+          if (node._northWest!.subdivided)
+            errors.add('Subdivided node #${node.id} is not optimized.');
+          else if (node._northEast!.subdivided)
+            errors.add('Subdivided node #${node.id} is not optimized.');
+          else if (node._southWest!.subdivided)
+            errors.add('Subdivided node #${node.id} is not optimized.');
+          else if (node._southEast!.subdivided)
+            errors.add('Subdivided node #${node.id} is not optimized.');
+        }
+        if (node._ids.isNotEmpty)
+          errors.add('Subdivided node #${node.id} has non-empty objects set.');
+      }
+      return true; // Continue visiting
+    });
+
+    // Check if all nodes are visited
+    if (nodesCount != nodeIds.length)
+      errors.add('Invalid nodes count: $nodesCount != ${nodeIds.length}.');
+
+    return errors;
+  }
+
+  // --------------------------------------------------------------------------
   // OVERRIDES
   // --------------------------------------------------------------------------
 
@@ -1026,7 +1169,13 @@ final class QT$N {
 
   /// Insert an object with [objectId] into the QuadTree node or its children.
   /// Returns id of the node where the object was inserted.
-  int _insert(int objectId, ui.Rect rect) {
+  int _insert(
+    int objectId,
+    double left,
+    double top,
+    double width,
+    double height,
+  ) {
     // Increase the number of objects in the node.
     _length++;
 
@@ -1043,19 +1192,23 @@ final class QT$N {
     if (!_subdivided) _subdivide();
 
     // Pick the most suitable leaf node for the object.
-    final rectCenterX = rect.left + rect.width / 2.0;
-    final rectCenterY = rect.top + rect.height / 2.0;
+    final rectCenterX = left + width / 2.0;
+    final rectCenterY = top + height / 2.0;
     if (_southWest!.boundary.top > rectCenterY) {
       if (_northWest!.boundary.right > rectCenterX) {
-        return _northWest!._insert(objectId, rect); // North-West
+        // North-West
+        return _northWest!._insert(objectId, left, top, width, height);
       } else {
-        return _northEast!._insert(objectId, rect); // North-East
+        // North-East
+        return _northEast!._insert(objectId, left, top, width, height);
       }
     } else {
       if (_southWest!.boundary.right > rectCenterX) {
-        return _southWest!._insert(objectId, rect); // South-West
+        // South-West
+        return _southWest!._insert(objectId, left, top, width, height);
       } else {
-        return _southEast!._insert(objectId, rect); // South-East
+        // South-East
+        return _southEast!._insert(objectId, left, top, width, height);
       }
     }
   }
@@ -1123,3 +1276,27 @@ Uint32List _resizeUint32List(Uint32List array, int newCapacity) =>
 @pragma('vm:prefer-inline')
 Float32List _resizeFload32List(Float32List array, int newCapacity) =>
     Float32List(newCapacity)..setAll(0, array);
+
+// TODO(plugfox): Add collision detection and spatial queries.
+// Использование битовых масок (BitWise) для определения того,
+// какие объекты могут коллайдить между собой,
+// – довольно распространённый и эффективный подход в игровых движках.
+// Он хорошо масштабируется и упрощает логику фильтрации коллизий
+// при большом количестве типов объектов. Ниже несколько соображений:
+//
+// Управление коллизиями
+//
+// С помощью битовых масок можно быстро проверить,
+// нужно ли вообще рассматривать коллизию двух объектов,
+// используя операцию & (логическое И).
+// Добавляя новые типы объектов и фракций, вы легко расширяете систему,
+// просто назначая каждому объекту свой бит в маске (или же набор битов).
+// Гибкость настройки
+//
+// Обычно каждому объекту назначают categoryBits (какой он тип)
+// и maskBits (с чем должен взаимодействовать).
+// Пример: у снаряда есть categoryBits = 0x0002 (т. е. второй бит),
+// а у противника – maskBits, где выставлен этот же второй бит.
+// Если (categoryBits & maskBits) != 0,
+// значит они должны обрабатываться как потенциальная коллизия.
+// Mike Matiunin <plugfox@gmail.com>, 08 January 2025
