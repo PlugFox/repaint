@@ -16,15 +16,10 @@ void main() => group(
         var report = true;
 
         /*
-          RePaint QuadTree inserts 2(RunTime): 876.593 us.
-          RePaint QuadTree inserts(RunTime): 1124.549 us.
-          Flame QuadTree inserts(RunTime): 26043.75 us.
+          RePaint QuadTree inserts(RunTime): 934.0045 us.
+          Flame QuadTree inserts(RunTime): 26800.415584415583 us.
         */
         test('Inserts', () {
-          final repaint2 = _RePaintQuadTreeInserts2Benchmark();
-          if (report)
-            // ignore: dead_code
-            repaint2.report();
           final repaint = _RePaintQuadTreeInsertsBenchmark();
           if (report)
             // ignore: dead_code
@@ -47,15 +42,10 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree inserts & removes 2(RunTime): 110.91873528782367 us.
-          RePaint QuadTree inserts & removes(RunTime): 120.44225120432381 us.
-          Flame QuadTree inserts & removes(RunTime): 2268.315 us.
+          RePaint QuadTree inserts & removes(RunTime): 114.04378531073446 us.
+          Flame QuadTree inserts & removes(RunTime): 2244.599 us.
         */
         test('Inserts and removes', () {
-          final repaint2 = _RePaintQuadTreeInsertsAndRemoves2Benchmark();
-          if (report)
-            // ignore: dead_code
-            repaint2.report();
           final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
           if (report)
             // ignore: dead_code
@@ -76,10 +66,10 @@ void main() => group(
         });
 
         /*
-          RePaint QuadTree query ids(RunTime): 569.046 us.
-          RePaint QuadTree query map(RunTime): 1259.431 us.
-          RePaint QuadTree query(RunTime): 1589.3613193403298 us.
-          Flame QuadTree query(RunTime): 2431.795 us.
+          RePaint QuadTree query ids(RunTime): 1004.9575 us.
+          RePaint QuadTree query map(RunTime): 1825.3253373313344 us.
+          RePaint QuadTree query(RunTime): 2058.2428785607194 us.
+          Flame QuadTree query(RunTime): 2466.44 us.
         */
         test('Static query', () {
           // ~ 560 us to query, 567 us.
@@ -169,31 +159,6 @@ void main() => group(
       },
     );
 
-class _RePaintQuadTreeInserts2Benchmark extends BenchmarkBase {
-  _RePaintQuadTreeInserts2Benchmark() : super('RePaint QuadTree inserts 2');
-
-  late QT qt;
-
-  @override
-  void setup() {
-    qt = QT(
-      boundary: const ui.Rect.fromLTWH(0, 0, 10000, 10000),
-      capacity: 25,
-    );
-    super.setup();
-  }
-
-  @override
-  void run() {
-    qt.clear();
-    for (var i = 0; i < 1000; i++) {
-      final box = ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10);
-      qt.insert(box);
-    }
-    qt.optimize();
-  }
-}
-
 class _RePaintQuadTreeInsertsBenchmark extends BenchmarkBase {
   _RePaintQuadTreeInsertsBenchmark() : super('RePaint QuadTree inserts');
 
@@ -249,39 +214,6 @@ class _FlameQuadTreeInsertsBenchmark extends BenchmarkBase {
   }
 }
 
-class _RePaintQuadTreeInsertsAndRemoves2Benchmark extends BenchmarkBase {
-  _RePaintQuadTreeInsertsAndRemoves2Benchmark()
-      : super('RePaint QuadTree inserts & removes 2');
-
-  late QT qt;
-
-  @override
-  void setup() {
-    qt = QT(
-      boundary: const ui.Rect.fromLTWH(0, 0, 1000, 1000),
-      capacity: 25,
-    );
-    super.setup();
-  }
-
-  @override
-  void run() {
-    qt.clear();
-    final queue = Queue<int>();
-    for (var i = 0; i < 100; i++) {
-      final box = ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10);
-      final id = qt.insert(box);
-      queue.add(id);
-    }
-    if (qt.length != 100) throw Exception('Failed to insert all');
-    while (queue.isNotEmpty)
-      if (!qt.remove(queue.removeFirst()))
-        throw Exception('Failed to remove object');
-    qt.optimize();
-    if (qt.length != 0) throw Exception('Failed to remove all');
-  }
-}
-
 class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
   _RePaintQuadTreeInsertsAndRemovesBenchmark()
       : super('RePaint QuadTree inserts & removes');
@@ -304,7 +236,7 @@ class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
     for (var i = 0; i < 100; i++) {
       final box = ui.Rect.fromLTWH(i * 10.0, i * 10.0, 10, 10);
       final id = qt.insert(box);
-      queue.add(id!);
+      queue.add(id);
     }
     if (qt.length != 100) throw Exception('Failed to insert all');
     while (queue.isNotEmpty) qt.remove(queue.removeFirst());
@@ -492,7 +424,6 @@ class _RePaintQuadTreeMoveBenchmark extends BenchmarkBase {
   @override
   void run() {
     final id = qt.insert(const ui.Rect.fromLTWH(0, 0, 10, 10));
-    if (id == null) throw Exception('Failed to insert');
     for (var i = 0; i < 1000; i++) qt.move(id, i.toDouble(), i.toDouble());
     final pos = qt.get(id);
     if (pos.left != 999 || pos.top != 999) throw Exception('Failed to move');
@@ -570,13 +501,12 @@ class _RePaintQuadTreeCapacityBenchmark extends BenchmarkBase {
     for (var i = 0; i < 1000; i++) {
       final box = ui.Rect.fromLTWH(i * 1.0, i * 1.0, 10, 10);
       final id = qt.insert(box);
-      queue.add(id!);
+      queue.add(id);
     }
     if (qt.length != 1000) throw Exception('Failed to insert all');
 
     // Move
     final id = qt.insert(const ui.Rect.fromLTWH(0, 0, 10, 10));
-    if (id == null) throw Exception('Failed to insert');
     for (var i = 0; i < 1000; i++) qt.move(id, i * 1.0, i * 1.0);
     final pos = qt.get(id);
     if (pos.left != 999 || pos.top != 999) throw Exception('Failed to move');

@@ -222,8 +222,7 @@ class QuadTreePainter extends RePainterBase {
       width: 2,
       height: 2,
     );
-    final id = _quadTree.insert(dot);
-    if (id == null) return;
+    _quadTree.insert(dot);
     _needsPaint = true;
   }
 
