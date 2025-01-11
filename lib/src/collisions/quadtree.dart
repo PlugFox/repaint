@@ -104,6 +104,29 @@ extension type QuadTree$QueryResult._(Float32List _bytes) {
 /// the QuadTree will not subdivide further and [capacity] will be ignored.
 /// Suitable values for the depth are usually between 8 and 16.
 /// Should be always greater or equal than 1.
+///
+/// This formula computes the maximum depth of a quad tree based on the overall
+/// boundary size (`Boundary`) and
+/// the desired minimal boundary size (`Size`) for each node:
+///
+///    maxDepth = ceil(log2(Boundary / Size))
+///
+/// Where:
+/// - Boundary is the length of the entire boundary (e.g., the width or height
+///   of the area, assuming a square).
+/// - Size is the desired minimal boundary size for a node.
+/// - log2(...) is the logarithm base 2.
+/// - ceil(...) means rounding up to the next integer.
+///
+/// For example, if the boundary is 1024x1024 and the desired minimal size is
+/// 64x64, the maximum depth of the quad tree will be:
+///   maxDepth = ceil(log2(1024 / 64)) = ceil(log2(16)) = ceil(4) = 4
+///
+/// The quad tree subdivides its space by splitting each node
+/// into four quadrants, effectively halving the boundary at every level.
+/// Once the boundary size reaches the desired minimal size,
+/// the maximum depth is reached.
+///
 /// {@endtemplate}
 final class QuadTree {
   /// Creates a new Quadtree with [boundary] and a [capacity].
