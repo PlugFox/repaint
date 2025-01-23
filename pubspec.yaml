@@ -3,7 +3,7 @@ name: repaint
 description: >
   Library for creating and managing a canvas similar to CustomPaint but with more features.
 
-version: 0.0.7+1
+version: 0.0.8
 
 homepage: https://github.com/PlugFox/repaint
 

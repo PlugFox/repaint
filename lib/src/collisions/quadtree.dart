@@ -500,7 +500,7 @@ final class QuadTree {
   /// This method is two times faster than [queryMap] and [query].
   /// And should be used when you need only object identifiers.
   List<int> queryIds(ui.Rect rect) {
-    if (rect.isEmpty) return const [];
+    //if (rect.isEmpty) return const [];
 
     final root = _root;
     if (root == null) return const [];
@@ -555,7 +555,7 @@ final class QuadTree {
   /// Query the QuadTree for objects that intersect with the given [rect].
   /// Returns a map of object identifiers and their bounds.
   Map<int, ui.Rect> queryMap(ui.Rect rect) {
-    if (rect.isEmpty) return const {};
+    //if (rect.isEmpty) return const {};
 
     final root = _root;
     if (root == null) return const {};
@@ -625,7 +625,7 @@ final class QuadTree {
   /// Query the QuadTree for objects that intersect with the given [rect].
   /// Returns a buffer of object data.
   QuadTree$QueryResult query(ui.Rect rect) {
-    if (rect.isEmpty) return QuadTree$QueryResult._(Float32List(0));
+    //if (rect.isEmpty) return QuadTree$QueryResult._(Float32List(0));
 
     final root = _root;
     if (root == null || isEmpty) return QuadTree$QueryResult._(Float32List(0));
