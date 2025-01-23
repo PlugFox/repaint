@@ -1,3 +1,7 @@
+## 0.0.8
+
+- **FIXED**: Allow to select empty rect in `QuadTree` example.
+
 ## 0.0.7+1
 
 - **ADDED**: Added `changeSize` method to `QuadTree`.
