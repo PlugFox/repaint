@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:developer';
 import 'dart:math';
 
 import 'package:flutter/gestures.dart';
@@ -57,6 +58,9 @@ class CollisionRectObject {
   // Only small rects can be moved
   bool get canBeMoved => rect.width < 128 && rect.height < 128;
 
+  double get diagonalLength =>
+      sqrt(rect.width * rect.width + rect.height * rect.height);
+
   Iterable<Vector2d> get vertices {
     return [
       Vector2d(rect.left, rect.bottom),
@@ -73,10 +77,14 @@ class CollisionRectObject {
     const int prime1 = 73856093;
     const int prime2 = 19349663;
     const int prime3 = 83492791;
-    return ((id * prime1) ^
-        (rect.left * prime2).round() ^
-        (rect.top * prime3).round());
+    return _hashCode ??= (id * 37 +
+            (id * prime1) +
+            ((rect.left * prime2).round() << 8) +
+            ((rect.top * prime3).round()) <<
+        4);
   }
+
+  int? _hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -148,51 +156,42 @@ class Vector2d {
 }
 
 class CollisionUtil {
+  // Object a inside object b
   static ({Vector2d normal, double depth})? intercectRects(
       CollisionRectObject a, CollisionRectObject b) {
-    double minOverlap = double.infinity;
-    Vector2d bestNormal = const Vector2d(0, 0);
+    Vector2d normal = Vector2d.zero();
+    double depth = double.maxFinite;
 
-    for (var poly in [a, b]) {
-      final vertices = poly.vertices.toList();
-      //print('verticies: [${vertices.join(', ')}]');
-      for (int i = 0; i < vertices.length; i++) {
-        Vector2d p1 = vertices[i];
-        Vector2d p2 = vertices[(i + 1) % vertices.length];
-        Vector2d edge = p2 - p1;
-        Vector2d axis = edge.perpendicular().normalized();
+    List<Vector2d> verticesA = a.vertices.toList();
+    List<Vector2d> verticesB = b.vertices.toList();
 
-        // Project both polygons onto the axis
-        double minA = double.infinity, maxA = -double.infinity;
-        double minB = double.infinity, maxB = -double.infinity;
+    var normalAndDepthA = CollisionUtil.getNormalAndDepth(
+      verticesA,
+      verticesB,
+    );
 
-        for (Vector2d v in a.vertices) {
-          double projection = v.dot(axis);
-          minA = min(minA, projection);
-          maxA = max(maxA, projection);
-        }
+    if (normalAndDepthA.depth < depth) {
+      depth = normalAndDepthA.depth;
+      normal = normalAndDepthA.normal;
+    }
+    var normalAndDepthB = CollisionUtil.getNormalAndDepth(
+      verticesB,
+      verticesA,
+      insverted: true,
+    );
 
-        for (Vector2d v in b.vertices) {
-          double projection = v.dot(axis);
-          minB = min(minB, projection);
-          maxB = max(maxB, projection);
-        }
-
-        // Check for gap
-        if (maxA < minB || maxB < minA) {
-          return null; // No collision
-        }
-
-        // Compute overlap
-        double overlap = min(maxA, maxB) - max(minA, minB);
-        if (overlap < minOverlap) {
-          minOverlap = overlap;
-          bestNormal = axis;
-        }
-      }
+    if (normalAndDepthB.depth < depth) {
+      depth = normalAndDepthB.depth;
+      normal = normalAndDepthB.normal;
     }
 
-    return (normal: bestNormal, depth: minOverlap);
+    Vector2d direction = a.absoluteCenter - b.absoluteCenter;
+
+    if (direction.dot(normal) < 0) {
+      normal = -normal;
+    }
+
+    return (normal: normal, depth: depth);
   }
 
   static ({Vector2d normal, double depth}) getNormalAndDepth(
@@ -285,39 +284,39 @@ mixin CollisionObjectsMixin on QuadTreeCameraMixin {
     ..strokeWidth = 2;
 
   @override
-  // ignore: unnecessary_overrides
   void mountQtCamera() {
     super.mountQtCamera();
 
-    // addSideBounds();
+    addSideBounds();
   }
 
+  // Bounds that will restrict the area where objects can move.
   void addSideBounds() {
     // Adding bounds to the screen box:
     const double boundWidth = 64;
     const double rectDimensions = 1024;
     final boundLeft = Rect.fromLTWH(
       cameraBoundary.center.dx - rectDimensions / 2 - boundWidth,
-      cameraBoundary.center.dy - rectDimensions / 2,
+      cameraBoundary.center.dy - rectDimensions,
       boundWidth,
-      rectDimensions,
+      rectDimensions * 3,
     );
     final boundRight = Rect.fromLTWH(
       cameraBoundary.center.dx + rectDimensions / 2 - boundWidth,
-      cameraBoundary.center.dy - rectDimensions / 2 - boundWidth,
+      cameraBoundary.center.dy - rectDimensions - boundWidth,
       boundWidth,
-      rectDimensions,
+      rectDimensions * 3,
     );
     final boundTop = Rect.fromLTWH(
-      cameraBoundary.center.dx - rectDimensions / 2 - boundWidth,
+      cameraBoundary.center.dx - rectDimensions - boundWidth,
       cameraBoundary.center.dy - rectDimensions / 2 - boundWidth,
-      rectDimensions,
+      rectDimensions * 3,
       boundWidth,
     );
     final boundBottom = Rect.fromLTWH(
-      cameraBoundary.center.dx - rectDimensions / 2,
+      cameraBoundary.center.dx - rectDimensions,
       cameraBoundary.center.dy + rectDimensions / 2 - boundWidth,
-      rectDimensions,
+      rectDimensions * 3,
       boundWidth,
     );
 
@@ -372,19 +371,20 @@ mixin CollisionObjectsMixin on QuadTreeCameraMixin {
       if (colisionResult == null) {
         continue;
       }
-      //if (a.canBeMoved || b.canBeMoved) {
-      //  print(
-      //      '> colisionResult= ${colisionResult.normal}, depth=${colisionResult.depth} (delta=$dt)');
-      //}
+
+      // Changing velocity depending on how deep objects intercet.
       final depth = max(1.0, colisionResult.depth);
+      final velocityChange = colisionResult.normal * depth * dt * 64;
       if (a.canBeMoved) {
-        //final newVelocity = colisionResult.normal * colisionResult.depth;
-        a.velocity = colisionResult.normal * depth;
+        a.velocity = a.velocity + velocityChange;
       }
+      // both objects gain same velocity change, but in opposite directions.
       if (b.canBeMoved) {
-        b.velocity = colisionResult.normal * (-1) * depth;
+        b.velocity = b.velocity + velocityChange * -1;
       }
     }
+
+    // Moving objects depending on their velocities:
     for (final e in collisionObjects.values) {
       quadTree.move(e.id, e.rect.left + e.velocity.x * dt,
           e.rect.top + e.velocity.y * dt);
@@ -395,7 +395,7 @@ mixin CollisionObjectsMixin on QuadTreeCameraMixin {
   final _collidingPairHashes = <int, CollidingPair<CollisionRectObject>>{};
   final _collidingObjectIds = <int>{};
 
-  CollidingPair<CollisionRectObject>? _checkCollideWith(
+  void _checkCollideWith(
     CollisionRectObject object,
   ) {
     for (final potential in quadTree.queryRectsIterable(object.rect)) {
@@ -403,14 +403,19 @@ mixin CollisionObjectsMixin on QuadTreeCameraMixin {
       final other = collisionObjects[potential.id];
       if (other == null) continue;
       final pair = CollidingPair(object, other);
-      if (_collidingPairHashes.containsKey(pair.hash)) continue;
+      if (_collidingPairHashes.containsKey(pair.hash)) {
+        // just checking that hash function is correct.
+        final existing = _collidingPairHashes[pair.hash]!;
+        debugger(
+            when: !((existing.a.id == pair.a.id &&
+                    existing.b.id == pair.b.id) ||
+                (existing.a.id == pair.b.id && existing.b.id == pair.a.id)));
+        continue;
+      }
       _collidingPairHashes[pair.hash] = pair;
       _collidingObjectIds.add(object.id);
       _collidingObjectIds.add(other.id);
-      return pair;
     }
-
-    return null;
   }
 }
 
