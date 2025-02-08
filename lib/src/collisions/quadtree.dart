@@ -75,6 +75,33 @@ extension type QuadTree$QueryResult._(Float32List _bytes) {
   }
 }
 
+/// Simple representation of a rectangle with an identifier.
+class QuadTreeRect {
+  /// Creates a new rectangle with an identifier.
+  const QuadTreeRect({
+    required this.id,
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
+
+  /// The identifier of the rectangle.
+  final int id;
+
+  /// left x coordinate of the rectangle.
+  final double left;
+
+  /// top y coordinate of the rectangle.
+  final double top;
+
+  /// right x of the rectangle.
+  final double right;
+
+  /// bottom y the rectangle.
+  final double bottom;
+}
+
 /// {@template quadtree}
 /// A Quadtree data structure that subdivides a 2D space into four quadrants
 /// to speed up collision detection and spatial queries.
@@ -732,6 +759,105 @@ final class QuadTree {
 
     // Resize the results to the actual length
     return QuadTree$QueryResult._(results.sublist(0, $length));
+  }
+
+  /// Returns the iterable of Rects that intersect with the given [rect].
+  Iterable<QuadTreeRect> queryRectsIterable(ui.Rect rect) sync* {
+    //if (rect.isEmpty) return QuadTree$QueryResult._(Float32List(0));
+
+    final root = _root;
+    if (root == null || isEmpty) return;
+
+    final objects = _objects;
+    var offset = 0;
+
+    // If the query rectangle fully contains the QuadTree boundary.
+    // Return all objects in the QuadTree.
+    if (rect.left <= boundary.left &&
+        rect.top <= boundary.top &&
+        rect.right >= boundary.right &&
+        rect.bottom >= boundary.bottom) {
+      if (root._subdivided) {
+        for (var i = 0; i < _nextObjectId; i++) {
+          if (_id2node[i] == 0) continue;
+          offset = i * _objectSize;
+          yield QuadTreeRect(
+            id: i,
+            left: objects[offset + 0],
+            top: objects[offset + 1],
+            right: objects[offset + 0] + objects[offset + 2],
+            bottom: objects[offset + 1] + objects[offset + 3],
+          );
+        }
+      } else {
+        final rootIds = root._ids;
+        for (final id in rootIds) {
+          offset = id * _objectSize;
+          yield QuadTreeRect(
+            id: id,
+            left: objects[offset + 0],
+            top: objects[offset + 1],
+            right: objects[offset + 0] + objects[offset + 2],
+            bottom: objects[offset + 1] + objects[offset + 3],
+          );
+        }
+      }
+      return;
+    }
+
+    final subdivided = Queue<QuadTree$Node>()..add(root);
+    final leafs = <QuadTree$Node>[];
+
+    // Find all leaf nodes from the subdivided nodes
+    while (subdivided.isNotEmpty) {
+      final node = subdivided.removeFirst();
+      if (node.isEmpty) continue;
+      if (!_overlaps(node.boundary, rect)) continue;
+      if (node.subdivided) {
+        subdivided
+          ..add(node._northWest!)
+          ..add(node._northEast!)
+          ..add(node._southWest!)
+          ..add(node._southEast!);
+      } else {
+        leafs.add(node);
+      }
+    }
+
+    // Find all objects in the leaf nodes
+    // hat intersect with the query rectangle
+    /* var j = 0;
+    for (var i = 0; i < leafs.length; i++) {
+      final node = leafs[i];
+      if (!_overlaps(node.boundary, rect)) continue;
+      if (i != j) leafs[j] = leafs[i];
+      j++;
+    }
+    leafs.length = j; */
+
+    // No leaf nodes found
+    if (leafs.isEmpty) return;
+
+    // Fill the results with the objects from the leaf nodes
+    for (final node in leafs) {
+      for (final id in node._ids) {
+        offset = id * _objectSize;
+        final left = objects[offset + 0],
+            top = objects[offset + 1],
+            width = objects[offset + 2],
+            height = objects[offset + 3];
+        if (!_overlapsLTWH(rect, left, top, width, height)) continue;
+
+        yield QuadTreeRect(
+          id: id,
+          left: left,
+          top: top,
+          right: left + width,
+          bottom: top + height,
+        );
+      }
+    }
+    return;
   }
 
   /// Call this on the root to try merging all possible child nodes.

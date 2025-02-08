@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:repaint/repaint.dart';
 import 'package:repaintexample/src/common/widget/app.dart';
+import 'package:repaintexample/src/feature/quadtree/quadtree_camera.dart';
 
 /// {@template quadtree_screen}
 /// QuadTreeScreen widget.
@@ -25,32 +26,6 @@ class QuadTreeScreen extends StatefulWidget {
 /// State for widget QuadTreeScreen.
 class _QuadTreeScreenState extends State<QuadTreeScreen> {
   final QuadTreePainter painter = QuadTreePainter();
-  /* #region Lifecycle */
-  @override
-  void initState() {
-    super.initState();
-    // Initial state initialization
-  }
-
-  @override
-  void didUpdateWidget(covariant QuadTreeScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Widget configuration changed
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // The configuration of InheritedWidgets has changed
-    // Also called after initState but before build
-  }
-
-  @override
-  void dispose() {
-    // Permanent removal of a tree stent
-    super.dispose();
-  }
-  /* #endregion */
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -68,46 +43,32 @@ class _QuadTreeScreenState extends State<QuadTreeScreen> {
       );
 }
 
-class QuadTreePainter extends RePainterBase {
-  final QuadTree _quadTree = QuadTree(
-    boundary: const Rect.fromLTWH(0, 0, 100000, 100000),
-    capacity: 18,
-  );
-
-  final _camera = QuadTreeCamera(
-    boundary: Rect.zero,
-  );
-
+class QuadTreePainter extends RePainterBase with QuadTreeCameraMixin {
   final HardwareKeyboard _keyboardManager = HardwareKeyboard.instance;
   bool _spacebarPressed = false;
 
   Float32List _points = Float32List(0);
-  Size _size = Size.zero;
 
   @override
-  bool get needsPaint => _needsPaint;
-  bool _needsPaint = false;
+  bool get needsPaint => needsPaintQt;
 
   @override
   void mount(RePaintBox box, PipelineOwner owner) {
-    _size = box.size;
-    _camera.set(Rect.fromCenter(
-      center: _quadTree.boundary.center,
-      width: _size.width,
-      height: _size.height,
-    ));
+    size = box.size;
+    mountQtCamera();
+
     _keyboardManager.addHandler(onKeyboardEvent);
     _spacebarPressed =
         HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.space);
-    _needsPaint = true;
+    needsPaintQt = true;
   }
 
   @override
   void unmount() {
     _keyboardManager.removeHandler(onKeyboardEvent);
-    _quadTree.clear();
+    unmountQtCamera();
     _spacebarPressed = false;
-    _needsPaint = false;
+    needsPaintQt = false;
   }
 
   bool onKeyboardEvent(KeyEvent event) {
@@ -121,16 +82,16 @@ class QuadTreePainter extends RePainterBase {
     switch (event.logicalKey) {
       case LogicalKeyboardKey.keyW when isKeyDown:
       case LogicalKeyboardKey.arrowUp when isKeyDown:
-        _moveCamera(const Offset(0, -10));
+        moveQtCamera(const Offset(0, -10));
       case LogicalKeyboardKey.keyS when isKeyDown:
       case LogicalKeyboardKey.arrowDown when isKeyDown:
-        _moveCamera(const Offset(0, 10));
+        moveQtCamera(const Offset(0, 10));
       case LogicalKeyboardKey.keyA when isKeyDown:
       case LogicalKeyboardKey.arrowLeft when isKeyDown:
-        _moveCamera(const Offset(-10, 0));
+        moveQtCamera(const Offset(-10, 0));
       case LogicalKeyboardKey.keyD when isKeyDown:
       case LogicalKeyboardKey.arrowRight when isKeyDown:
-        _moveCamera(const Offset(10, 0));
+        moveQtCamera(const Offset(10, 0));
       case LogicalKeyboardKey.space:
         _spacebarPressed = isKeyDown;
       default:
@@ -144,105 +105,43 @@ class QuadTreePainter extends RePainterBase {
     switch (event) {
       case PointerHoverEvent hover:
         if (!_spacebarPressed) return;
-        _moveCamera(-hover.localDelta);
+        moveQtCamera(-hover.localDelta);
       case PointerMoveEvent move:
         if (!move.down) return;
         _onClick(move.localPosition);
       case PointerPanZoomUpdateEvent pan:
-        _moveCamera(pan.panDelta);
+        moveQtCamera(pan.panDelta);
       case PointerDownEvent click:
         _onClick(click.localPosition);
     }
   }
 
-  void _moveCamera(Offset offset) {
-    if (offset == Offset.zero) return;
-    _needsPaint = true;
-    _camera.move(offset);
-    // Ensure the camera stays within the quadtree boundary.
-    if (_camera.boundary.width > _quadTree.boundary.width ||
-        _camera.boundary.height > _quadTree.boundary.height) {
-      final canvasAspectRatio = _size.width / _size.height;
-      final quadTreeAspectRatio =
-          _quadTree.boundary.width / _quadTree.boundary.height;
-      if (canvasAspectRatio > quadTreeAspectRatio) {
-        _camera.set(Rect.fromCenter(
-          center: _camera.boundary.center,
-          width: _quadTree.boundary.width,
-          height: _quadTree.boundary.width / canvasAspectRatio,
-        ));
-      } else {
-        _camera.set(Rect.fromCenter(
-          center: _camera.boundary.center,
-          width: _quadTree.boundary.height * canvasAspectRatio,
-          height: _quadTree.boundary.height,
-        ));
-      }
-    }
-    if (_camera.boundary.left < _quadTree.boundary.left) {
-      _camera.set(Rect.fromLTWH(
-        0,
-        _camera.boundary.top,
-        _camera.boundary.width,
-        _camera.boundary.height,
-      ));
-    } else if (_camera.boundary.right > _quadTree.boundary.right) {
-      _camera.set(Rect.fromLTWH(
-        _quadTree.boundary.right - _camera.boundary.width,
-        _camera.boundary.top,
-        _camera.boundary.width,
-        _camera.boundary.height,
-      ));
-    }
-    if (_camera.boundary.top < _quadTree.boundary.top) {
-      _camera.set(Rect.fromLTWH(
-        _camera.boundary.left,
-        0,
-        _camera.boundary.width,
-        _camera.boundary.height,
-      ));
-    } else if (_camera.boundary.bottom > _quadTree.boundary.bottom) {
-      _camera.set(Rect.fromLTWH(
-        _camera.boundary.left,
-        _quadTree.boundary.bottom - _camera.boundary.height,
-        _camera.boundary.width,
-        _camera.boundary.height,
-      ));
-    }
-  }
-
   void _onClick(Offset point) {
     // Calculate the dot offset from the camera.
-    final cameraCenter = _camera.boundary.center;
+    final cameraCenter = cameraBoundary.center;
     final dot = Rect.fromCenter(
       center: Offset(
-        point.dx + cameraCenter.dx - _size.width / 2,
-        point.dy + cameraCenter.dy - _size.height / 2,
+        point.dx + cameraCenter.dx - size.width / 2,
+        point.dy + cameraCenter.dy - size.height / 2,
       ),
       width: 2,
       height: 2,
     );
-    _quadTree.insert(dot);
-    _needsPaint = true;
+    quadTree.insert(dot);
+    needsPaintQt = true;
   }
 
   @override
   void update(RePaintBox box, Duration elapsed, double delta) {
     // If the size of the box has changed, update the camera too.
-    if (box.size != _size) {
-      _size = box.size;
-      _camera.set(Rect.fromCenter(
-        center: _camera.boundary.center,
-        width: _size.width,
-        height: _size.height,
-      ));
-      _needsPaint = true;
+    if (box.size != size) {
+      updateCameraBoundary(box.size);
     }
 
-    if (!_needsPaint) return; // No need to update the points and repaint.
+    if (!needsPaintQt) return; // No need to update the points and repaint.
 
-    final boundary = _camera.boundary;
-    final result = _quadTree.query(boundary);
+    final boundary = cameraBoundary;
+    final result = quadTree.query(boundary);
     if (result.isEmpty) {
       _points = Float32List(0);
     } else {
@@ -299,9 +198,9 @@ class QuadTreePainter extends RePainterBase {
       ..write(' | ')
       ..write('World:')
       ..write(nbsp)
-      ..write(_quadTree.boundary.width.toStringAsFixed(0))
+      ..write(quadTree.boundary.width.toStringAsFixed(0))
       ..write('x')
-      ..write(_quadTree.boundary.height.toStringAsFixed(0))
+      ..write(quadTree.boundary.height.toStringAsFixed(0))
       ..write(' | ')
       ..write('Screen:')
       ..write(nbsp)
@@ -311,19 +210,19 @@ class QuadTreePainter extends RePainterBase {
       ..write(' | ')
       ..write('Position:')
       ..write(nbsp)
-      ..write(_camera.boundary.left.toStringAsFixed(0))
+      ..write(cameraBoundary.left.toStringAsFixed(0))
       ..write('x')
-      ..write(_camera.boundary.top.toStringAsFixed(0))
+      ..write(cameraBoundary.top.toStringAsFixed(0))
       ..write(' | ')
       ..write('Points:')
       ..write(nbsp)
       ..write(_points.length ~/ 2)
       ..write('/')
-      ..write(_quadTree.length)
+      ..write(quadTree.length)
       ..write(' | ')
       ..write('Nodes:')
       ..write(nbsp)
-      ..write(_quadTree.nodes);
+      ..write(quadTree.nodes);
     _textPainter
       ..text = TextSpan(
         text: status.toString(),
@@ -370,8 +269,8 @@ class QuadTreePainter extends RePainterBase {
 
   /// Draw the quadtree nodes on the canvas.
   void _drawQuadTree(Size size, Canvas canvas) {
-    final cam = _camera.boundary;
-    final queue = Queue<QuadTree$Node?>()..add(_quadTree.root);
+    final cam = cameraBoundary;
+    final queue = Queue<QuadTree$Node?>()..add(quadTree.root);
     while (queue.isNotEmpty) {
       final node = queue.removeFirst();
       if (node == null) continue;
@@ -419,24 +318,8 @@ class QuadTreePainter extends RePainterBase {
     _drawQuadTree(size, canvas); // Draw quadtree nodes
     _drawPoints(size, canvas); // Draw points
     _drawStatus(size, canvas); // Draw status
-    _needsPaint = false; // Reset the flag.
+    needsPaintQt = false; // Reset the flag.
   }
-}
-
-class QuadTreeCamera {
-  QuadTreeCamera({
-    required Rect boundary,
-  }) : _boundary = boundary;
-
-  /// The boundary of the camera.
-  Rect get boundary => _boundary;
-  Rect _boundary;
-
-  /// Move the camera by the given offset.
-  void move(Offset offset) => _boundary = _boundary.shift(offset);
-
-  /// Set the camera to the given boundary.
-  void set(Rect boundary) => _boundary = boundary;
 }
 
 /// Sort the list of points by the y-coordinate.
