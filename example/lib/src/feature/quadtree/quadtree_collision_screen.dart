@@ -293,29 +293,29 @@ mixin CollisionObjectsMixin on QuadTreeCameraMixin {
   // Bounds that will restrict the area where objects can move.
   void addSideBounds() {
     // Adding bounds to the screen box:
-    const double boundWidth = 64;
+    const double boundWidth = 128;
     const double rectDimensions = 1024;
     final boundLeft = Rect.fromLTWH(
-      cameraBoundary.center.dx - rectDimensions / 2 - boundWidth,
+      cameraBoundary.center.dx - rectDimensions / 2 - boundWidth / 2,
       cameraBoundary.center.dy - rectDimensions,
       boundWidth,
       rectDimensions * 3,
     );
     final boundRight = Rect.fromLTWH(
-      cameraBoundary.center.dx + rectDimensions / 2 - boundWidth,
+      cameraBoundary.center.dx + rectDimensions / 2 - boundWidth / 2,
       cameraBoundary.center.dy - rectDimensions - boundWidth,
       boundWidth,
       rectDimensions * 3,
     );
     final boundTop = Rect.fromLTWH(
       cameraBoundary.center.dx - rectDimensions - boundWidth,
-      cameraBoundary.center.dy - rectDimensions / 2 - boundWidth,
+      cameraBoundary.center.dy - rectDimensions / 2 - boundWidth / 2,
       rectDimensions * 3,
       boundWidth,
     );
     final boundBottom = Rect.fromLTWH(
       cameraBoundary.center.dx - rectDimensions,
-      cameraBoundary.center.dy + rectDimensions / 2 - boundWidth,
+      cameraBoundary.center.dy + rectDimensions / 2 - boundWidth / 2,
       rectDimensions * 3,
       boundWidth,
     );
@@ -375,12 +375,30 @@ mixin CollisionObjectsMixin on QuadTreeCameraMixin {
       // Changing velocity depending on how deep objects intercet.
       final depth = max(1.0, colisionResult.depth);
       final velocityChange = colisionResult.normal * depth * dt * 64;
+
+      Vector2d changeVelocityOnImmovableCollide(
+          Vector2d velocity, Vector2d change) {
+        return Vector2d(
+          (velocity.x.sign == change.x.sign) ? velocity.x : -(velocity.x),
+          (velocity.y.sign == change.y.sign) ? velocity.y : -(velocity.y),
+        );
+      }
+
       if (a.canBeMoved) {
+        if (!b.canBeMoved) {
+          a.velocity =
+              changeVelocityOnImmovableCollide(a.velocity, velocityChange);
+        }
         a.velocity = a.velocity + velocityChange;
       }
       // both objects gain same velocity change, but in opposite directions.
       if (b.canBeMoved) {
-        b.velocity = b.velocity + velocityChange * -1;
+        final velocityChangeB = velocityChange * -1;
+        if (!a.canBeMoved) {
+          b.velocity =
+              changeVelocityOnImmovableCollide(b.velocity, velocityChangeB);
+        }
+        b.velocity = b.velocity + velocityChangeB;
       }
     }
 
@@ -398,9 +416,10 @@ mixin CollisionObjectsMixin on QuadTreeCameraMixin {
   void _checkCollideWith(
     CollisionRectObject object,
   ) {
-    for (final potential in quadTree.queryRectsIterable(object.rect)) {
-      if (potential.id == object.id) continue;
-      final other = collisionObjects[potential.id];
+    final queryResult = quadTree.query(object.rect);
+    for (final potentialId in queryResult.ids) {
+      if (potentialId == object.id) continue;
+      final other = collisionObjects[potentialId];
       if (other == null) continue;
       final pair = CollidingPair(object, other);
       if (_collidingPairHashes.containsKey(pair.hash)) {
@@ -498,7 +517,7 @@ class QuadTreeCollisionPainter extends RePainterBase
       return;
     }
     _wasAdded = true;
-    Future<void>.delayed(const Duration(milliseconds: 500), () {
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
       _wasAdded = false;
     });
     // Calculate the dot offset from the camera.
@@ -523,33 +542,6 @@ class QuadTreeCollisionPainter extends RePainterBase
       updateCameraBoundary(box.size);
     }
     updateCollisionObjects(delta);
-
-    if (!needsPaintQt) return; // No need to update the points and repaint.
-
-    /*
-    final boundary = cameraBoundary;
-    final result = quadTree.query(boundary);
-    if (result.isEmpty) {
-      _points = Float32List(0);
-    } else {
-      _points = Float32List(result.length * 2);
-      var counter = 0;
-      result.forEach((
-        int id,
-        double left,
-        double top,
-        double width,
-        double height,
-      ) {
-        _points
-          ..[counter] = left + width / 2 - boundary.left
-          ..[counter + 1] = top + height / 2 - boundary.top;
-        counter += 2;
-        return true;
-      });
-      //_sortByY(_points);
-    }
-    */
   }
 
   final TextPainter _textPainter = TextPainter(
