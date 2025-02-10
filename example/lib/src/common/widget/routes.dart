@@ -3,6 +3,7 @@ import 'package:repaintexample/src/feature/clock/clock_screen.dart';
 import 'package:repaintexample/src/feature/fps/fps_screen.dart';
 import 'package:repaintexample/src/feature/home/home_screen.dart';
 import 'package:repaintexample/src/feature/performance_overlay/performance_overlay_screen.dart';
+import 'package:repaintexample/src/feature/quadtree/quadtree_collision_screen.dart';
 import 'package:repaintexample/src/feature/quadtree/quadtree_screen.dart';
 import 'package:repaintexample/src/feature/shaders/fragment_shaders_screen.dart';
 import 'package:repaintexample/src/feature/sunflower/sunflower_screen.dart';
@@ -43,6 +44,11 @@ final Map<String, Page<void> Function(Map<String, Object?>?)> $routes =
   'quadtree': (arguments) => MaterialPage<void>(
         name: 'quadtree',
         child: const QuadTreeScreen(),
+        arguments: arguments,
+      ),
+  'quadtree-collisions': (arguments) => MaterialPage<void>(
+        name: 'quadtree-collisions',
+        child: const QuadTreeCollisionScreen(),
         arguments: arguments,
       ),
 };

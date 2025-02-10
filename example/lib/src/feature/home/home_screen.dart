@@ -48,6 +48,10 @@ class HomeScreen extends StatelessWidget {
                     title: 'QuadTree',
                     page: 'quadtree',
                   ),
+                  HomeTile(
+                    title: 'QuadTree collisions',
+                    page: 'quadtree-collisions',
+                  ),
                 ],
               ),
             ),
