@@ -31,6 +31,7 @@ class _FpsScreenState extends State<FpsScreen> {
           Positioned.fill(
             child: RePaint.inline(
               frameRate: frameRate,
+              repaintBoundary: true,
               render: (box, state, canvas) {
                 final now = DateTime.now();
                 if (now.second != second) {
@@ -356,5 +357,4 @@ final class FrameRateGraph extends RePainterBase {
 
     canvas.restore();
   }
-
 }

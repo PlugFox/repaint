@@ -1,3 +1,7 @@
+## 0.1.0
+
+- **ADDED**: `RePaint` and `RePaint.inline` widget now has `repaintBoundary` property.
+
 ## 0.0.8
 
 - **FIXED**: Allow to select empty rect in `QuadTree` example.
