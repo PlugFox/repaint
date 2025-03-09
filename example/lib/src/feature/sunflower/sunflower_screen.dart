@@ -2,7 +2,7 @@
 
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:repaint/repaint.dart';
@@ -148,12 +148,12 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     int max = 10000,
   })  : _maxSeeds = max,
         _positions = Float32List(max * 6),
-        _colors = Int32List(max * 3),
+        /* _colors = Int32List(max * 3),
         _vertices = Vertices.raw(
           VertexMode.triangles,
           Float32List(0),
           colors: Int32List(0),
-        ),
+        ), */
         _theme = ThemeData.light() {
     _initVertices();
   }
@@ -193,18 +193,18 @@ class SunflowerPainter extends PerformanceOverlayPainter {
 
   ThemeData _theme;
 
-  final Float32List _positions;
+  Float32List _positions;
 
-  final Int32List _colors;
+  //final Int32List _colors;
 
-  Vertices _vertices;
+  //Vertices _vertices;
 
   void _initVertices() {
-    _vertices = Vertices.raw(
+    /* _vertices = Vertices.raw(
       VertexMode.triangles,
       _positions,
       colors: _colors,
-    );
+    ); */
   }
 
   /// Set the number of seeds in the sunflower
@@ -215,7 +215,7 @@ class SunflowerPainter extends PerformanceOverlayPainter {
 
   /// Генерирует вершины равнобедренного треугольника, вписанного в окружность
   /// с радиусом [radius] и центром в точке [center].
-  static List<double> generateIsoscelesPoints(
+  /* static List<double> generateIsoscelesPoints(
     Offset center, [
     double radius = 6,
   ]) {
@@ -232,7 +232,7 @@ class SunflowerPainter extends PerformanceOverlayPainter {
       result[y] = center.dy + radius * math.sin(angle);
     }
     return result;
-  }
+  } */
 
   @override
   void internalUpdate(RePaintBox box, Duration elapsed, double delta) {
@@ -240,6 +240,21 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     final radius = size.shortestSide / 2; // Радиус окружности
     final center = size.center(Offset.zero); // Центр окружности
 
+    // Draw points
+    final f32l = _positions = Float32List(_maxSeeds * 2);
+    for (var i = 0; i < _maxSeeds; i++) {
+      final outer = i < _seeds;
+      // Центр треугольника
+      final Offset(:dx, :dy) = center +
+          (outer
+              ? _evalOuter(radius, _maxSeeds, i)
+              : _evalInner(radius, _maxSeeds, i));
+      f32l
+        ..[i * 2 + 0] = dx
+        ..[i * 2 + 1] = dy;
+    }
+
+    /*
     // https://github.com/flutter/flutter/issues/160184#issuecomment-2560184639
     int toARGB32(Color color) {
       int floatToInt8(double x) => (x * 255.0).round() & 0xff;
@@ -294,7 +309,7 @@ class SunflowerPainter extends PerformanceOverlayPainter {
       VertexMode.triangles,
       _positions,
       colors: _colors,
-    );
+    ); */
   }
 
   @override
@@ -302,20 +317,44 @@ class SunflowerPainter extends PerformanceOverlayPainter {
     final canvas = context.canvas;
     var paint = Paint()
       ..style = PaintingStyle.fill
-      ..strokeWidth = 4
-      ..isAntiAlias = false
       ..blendMode = BlendMode.src
-      ..filterQuality = FilterQuality.none;
+      ..filterQuality = FilterQuality.none
+      ..isAntiAlias = false;
 
     canvas.drawRect(
       Offset.zero & box.size,
       paint..color = _theme.canvasColor,
     );
 
-    canvas.drawVertices(
+    paint = Paint()
+      ..strokeWidth = 8
+      ..blendMode = BlendMode.src
+      ..filterQuality = FilterQuality.none
+      ..strokeCap = StrokeCap.round
+      ..color = _theme.primaryColor
+      ..isAntiAlias = false;
+
+    // Draw the sunflower seeds points per batch of 5000.
+    final count = _maxSeeds;
+    const batch = 5000;
+    for (var offset = 0; offset < count; offset += batch) {
+      final start = offset;
+      final end = math.min(offset + batch, count);
+      final positionsView =
+          Float32List.sublistView(_positions, start * 2, end * 2);
+      canvas.drawRawPoints(ui.PointMode.points, positionsView, paint);
+    }
+
+    /* canvas.drawRawPoints(
+      ui.PointMode.points,
+      _positions,
+      paint,
+    ); */
+
+    /* canvas.drawVertices(
       _vertices,
       BlendMode.src,
       paint,
-    );
+    ); */
   }
 }

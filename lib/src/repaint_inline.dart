@@ -15,6 +15,7 @@ class RePaintInline<T extends Object?> extends StatefulWidget {
     this.tearDown,
     this.frameRate,
     this.needsPaint = true,
+    this.repaintBoundary = false,
     super.key,
   });
 
@@ -40,6 +41,15 @@ class RePaintInline<T extends Object?> extends StatefulWidget {
   /// 60 - 60 frames per second.
   /// 120 - 120 frames per second.
   final int? frameRate;
+
+  /// Whether the controller should create a new layer for the scene.
+  /// If `true`, the controller will create a new layer for the scene.
+  /// If `false`, the controller will not create a new layer for the scene.
+  ///
+  /// This is useful when the controller needs to be repainted frequently
+  /// separately from the other widgets and the scene is complex
+  /// and has many layers.
+  final bool repaintBoundary;
 
   /// The controller needs to be repainted after the update.
   ///
@@ -80,7 +90,8 @@ class _RePaintInlineState<T> extends State<RePaintInline<T>> {
   }
 
   @override
-  Widget build(BuildContext context) => RePaint(painter: painter);
+  Widget build(BuildContext context) =>
+      RePaint(painter: painter, repaintBoundary: widget.repaintBoundary);
 }
 
 /// Internal controller for inline state.

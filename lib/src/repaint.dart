@@ -12,6 +12,7 @@ class RePaint extends LeafRenderObjectWidget {
   /// {@macro repaint}
   const RePaint({
     required this.painter,
+    this.repaintBoundary = true,
     super.key,
   });
 
@@ -22,11 +23,14 @@ class RePaint extends LeafRenderObjectWidget {
   /// The [update] is called periodically by the loop.
   /// The [render] is called to render the scene after the update.
   /// The [tearDown] is called to unmount and dispose the controller.
+  /// The [repaintBoundary] is used to create a new layer for the scene.
   /// The [key] is used to identify the widget.
   ///
   /// After the [frameRate] is set, the real frame rate will be lower.
   /// Before the frame rate, updates are limited by the flutter ticker,
   /// so the resulting frame rate will be noticeably lower.
+  ///
+  /// By default, the [repaintBoundary] is set to false for [inline] widgets.
   /// {@macro repaint}
   static Widget inline<T>({
     required void Function(RePaintBox box, T state, Canvas canvas) render,
@@ -34,6 +38,7 @@ class RePaint extends LeafRenderObjectWidget {
     T? Function(RePaintBox box, T state, double delta)? update,
     void Function(T state)? tearDown,
     int? frameRate,
+    bool repaintBoundary = false,
     Key? key,
   }) =>
       RePaintInline<T>(
@@ -42,11 +47,22 @@ class RePaint extends LeafRenderObjectWidget {
         update: update,
         tearDown: tearDown,
         frameRate: frameRate,
+        repaintBoundary: repaintBoundary,
         key: key,
       );
 
-  /// The painter controller.
+  /// The painter controller, used to update and paint the scene.
+  /// For example, a game controller or a custom painter.
   final RePainter painter;
+
+  /// Whether the controller should create a new layer for the scene.
+  /// If `true`, the controller will create a new layer for the scene.
+  /// If `false`, the controller will not create a new layer for the scene.
+  ///
+  /// This is useful when the controller needs to be repainted frequently
+  /// separately from the other widgets and the scene is complex
+  /// and has many layers.
+  final bool repaintBoundary;
 
   @override
   RePaintElement createElement() => RePaintElement(this);
@@ -55,11 +71,14 @@ class RePaint extends LeafRenderObjectWidget {
   RenderObject createRenderObject(BuildContext context) => RePaintBox(
         painter: painter,
         context: context,
+        isRepaintBoundary: repaintBoundary,
       );
 
   @override
   void updateRenderObject(BuildContext context, RePaintBox renderObject) {
-    renderObject._context = context;
+    renderObject
+      .._context = context
+      ..isRepaintBoundary = repaintBoundary;
     if (identical(painter, renderObject.painter)) return;
     if (renderObject.attached) painter.unmount();
     assert(renderObject.owner != null, 'RenderObject is not attached.');
@@ -109,8 +128,10 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   RePaintBox({
     required RePainter painter,
     required BuildContext context,
+    required bool isRepaintBoundary,
   })  : _painter = painter,
-        _context = context;
+        _context = context,
+        _$isRepaintBoundary = isRepaintBoundary;
 
   /// Current controller.
   RePainter get painter => _painter;
@@ -128,8 +149,17 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   Size get size => _size;
   Size _size = Size.zero;
 
+  bool _$isRepaintBoundary;
+
+  // Change the repaint boundary flag.
+  set isRepaintBoundary(bool value) {
+    if (_$isRepaintBoundary == value) return;
+    _$isRepaintBoundary = value;
+    markNeedsCompositingBitsUpdate();
+  }
+
   @override
-  bool get isRepaintBoundary => true;
+  bool get isRepaintBoundary => _$isRepaintBoundary;
 
   @override
   bool get alwaysNeedsCompositing => false;
