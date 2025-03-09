@@ -2,6 +2,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import 'frame_rate.dart';
 import 'repaint_inline.dart';
 import 'repainter_interface.dart';
 
@@ -19,6 +20,7 @@ class RePaint extends LeafRenderObjectWidget {
   /// Create a new [RePaint] widget with an inline controller.
   /// The [T] is the custom state type.
   /// The [frameRate] is used to limit the frame rate, (limitter and throttler).
+  /// The [repaint] is used to repaint the scene when the listenable changes.
   /// The [setUp] is called when the controller is attached to the render box.
   /// The [update] is called periodically by the loop.
   /// The [render] is called to render the scene after the update.
@@ -30,6 +32,9 @@ class RePaint extends LeafRenderObjectWidget {
   /// Before the frame rate, updates are limited by the flutter ticker,
   /// so the resulting frame rate will be noticeably lower.
   ///
+  /// By default the frame rate is set to 0 and scene is updated only
+  /// at [repaint] updates.
+  ///
   /// By default, the [repaintBoundary] is set to false for [inline] widgets.
   /// {@macro repaint}
   static Widget inline<T>({
@@ -37,7 +42,8 @@ class RePaint extends LeafRenderObjectWidget {
     T Function(RePaintBox box)? setUp,
     T? Function(RePaintBox box, T state, double delta)? update,
     void Function(T state)? tearDown,
-    int? frameRate,
+    int? frameRate = const RePaintFrameRate.zero(),
+    Listenable? repaint,
     bool repaintBoundary = false,
     Key? key,
   }) =>
@@ -47,6 +53,7 @@ class RePaint extends LeafRenderObjectWidget {
         update: update,
         tearDown: tearDown,
         frameRate: frameRate,
+        repaint: repaint,
         repaintBoundary: repaintBoundary,
         key: key,
       );

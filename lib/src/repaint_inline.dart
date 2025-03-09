@@ -2,7 +2,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:meta/meta.dart';
 
-import '../repaint.dart';
+import 'frame_rate.dart';
+import 'repaint.dart';
+import 'repainter_base.dart';
 
 /// Internal widget RePaint for preserving inline state.
 @internal
@@ -13,7 +15,8 @@ class RePaintInline<T extends Object?> extends StatefulWidget {
     this.setUp,
     this.update,
     this.tearDown,
-    this.frameRate,
+    this.frameRate = const RePaintFrameRate.zero(),
+    this.repaint,
     this.needsPaint = true,
     this.repaintBoundary = false,
     super.key,
@@ -35,12 +38,23 @@ class RePaintInline<T extends Object?> extends StatefulWidget {
   final void Function(T state)? tearDown;
 
   /// Whether the controller should limit the frame rate.
-  /// If `null`, the frame rate is not limited.
+  /// If `null` or less than 0, the frame rate is unlimited.
   /// 0 - Do not render the scene.
-  /// 30 - 30 frames per second.
-  /// 60 - 60 frames per second.
-  /// 120 - 120 frames per second.
+  /// 30 - limited to 30 frames per second.
+  /// 60 - limited to 60 frames per second.
+  /// 120 - limited to 120 frames per second.
+  ///
+  /// After the [frameRate] is set, the real frame rate will be lower.
+  /// Before the frame rate, updates are limited by the flutter ticker,
+  /// so the resulting frame rate will be noticeably lower.
+  ///
+  /// By default the frame rate is set to 0 and scene is updated only
+  /// at [repaint] updates.
   final int? frameRate;
+
+  /// The listenable to repaint the scene.
+  /// Can be used to repaint the scene when the listenable changes.
+  final Listenable? repaint;
 
   /// Whether the controller should create a new layer for the scene.
   /// If `true`, the controller will create a new layer for the scene.
@@ -77,16 +91,30 @@ class RePaintInline<T extends Object?> extends StatefulWidget {
 class _RePaintInlineState<T> extends State<RePaintInline<T>> {
   final _InlinePainter<T> painter = _InlinePainter<T>();
 
+  /// Mark the controller as needing to be repainted.
+  void markNeedsPaint() => painter.markNeedsPaint();
+
   @override
   void initState() {
     super.initState();
     painter.widget = widget;
+    widget.repaint?.addListener(markNeedsPaint);
   }
 
   @override
   void didUpdateWidget(covariant RePaintInline<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     painter.widget = widget;
+    if (!identical(widget.repaint, oldWidget.repaint)) {
+      oldWidget.repaint?.removeListener(markNeedsPaint);
+      widget.repaint?.addListener(markNeedsPaint);
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    widget.repaint?.removeListener(markNeedsPaint);
   }
 
   @override
@@ -106,8 +134,13 @@ final class _InlinePainter<T> extends RePainterBase {
   double _delta = 0;
 
   @override
-  bool get needsPaint => _allowFrame && (widget?.needsPaint ?? true);
+  bool get needsPaint =>
+      _needsPaint || _allowFrame && (widget?.needsPaint ?? true);
   bool _allowFrame = false;
+  bool _needsPaint = true;
+
+  /// Mark the controller as needing to be repainted.
+  void markNeedsPaint() => _needsPaint = true;
 
   @override
   void mount(RePaintBox box, PipelineOwner owner) {
@@ -119,13 +152,16 @@ final class _InlinePainter<T> extends RePainterBase {
   void update(RePaintBox box, Duration elapsed, double delta) {
     _delta += delta;
     switch (widget?.frameRate) {
-      case null:
-        // No frame rate limit.
-        _allowFrame = true;
-      case <= 0:
+      case 0:
         // Skip updating and rendering the game scene.
         _allowFrame = false;
         return;
+      case null:
+        // No frame rate limit.
+        _allowFrame = true;
+      case < 0:
+        // No frame rate limit.
+        _allowFrame = true;
       case int fr when fr > 0:
         final targetFrameTime = 1000 / fr;
         if (_delta < targetFrameTime) {
@@ -140,13 +176,15 @@ final class _InlinePainter<T> extends RePainterBase {
   }
 
   @override
-  void paint(RePaintBox box, PaintingContext context) {
-    widget?.render(box, state as T, context.canvas);
+  void unmount() {
+    _needsPaint = _allowFrame = false;
+    _delta = .0;
+    widget?.tearDown?.call(state as T);
   }
 
   @override
-  void unmount() {
-    _delta = .0;
-    widget?.tearDown?.call(state as T);
+  void paint(RePaintBox box, PaintingContext context) {
+    _needsPaint = false;
+    widget?.render(box, state as T, context.canvas);
   }
 }

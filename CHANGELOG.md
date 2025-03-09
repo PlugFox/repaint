@@ -1,3 +1,8 @@
+## 0.1.1
+
+- **ADDED**: `RePaint.inline` widget now has `repaint` property.
+- **CHANGED**: `RePaint.inline` widget by default has `frameRate` set to 0.
+
 ## 0.1.0
 
 - **ADDED**: `RePaint` and `RePaint.inline` widget now has `repaintBoundary` property.
