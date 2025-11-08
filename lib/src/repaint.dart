@@ -187,7 +187,7 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
       ..lifecycle(
           WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed);
     WidgetsBinding.instance.addObserver(this);
-    _ticker = Ticker(_onTick, debugLabel: 'RePaintBox')..start();
+    _ticker = Ticker(onTick, debugLabel: 'RePaintBox')..start();
   }
 
   @override
@@ -250,10 +250,13 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   Duration _lastFrameTime = Duration.zero;
 
   /// This method is periodically invoked by the [_ticker].
-  void _onTick(Duration elapsed) {
+  void onTick(Duration elapsed) {
     if (!attached) return;
+    // Delta can be negative when widget is paused.
+    // Sometimes even like "-15" seconds.
     final delta = elapsed - _lastFrameTime;
-    final deltaMs = delta.inMicroseconds / Duration.microsecondsPerMillisecond;
+    final deltaMs =
+        delta.inMicroseconds.abs() / Duration.microsecondsPerMillisecond;
     _lastFrameTime = elapsed;
     // Update game scene and prepare for rendering.
     _painter.update(this, elapsed, deltaMs);
