@@ -7,7 +7,7 @@ import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:flame/collisions.dart' as flame;
 import 'package:repaint/repaint.dart';
 import 'package:test/test.dart';
-import 'package:vector_math/vector_math_64.dart' show Vector2;
+import 'package:vector_math/vector_math.dart' show Vector2;
 
 // TODO(plugfox): Написать бенчмарк на поиск лучшего capacity для QuadTree
 // Mike Matiunin <plugfox@gmail.com>, 08 January 2025
