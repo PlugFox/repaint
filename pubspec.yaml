@@ -36,8 +36,8 @@ platforms:
 #    path: example.png
 
 environment:
-  sdk: ^3.6.0
-  flutter: ">=3.27.0"
+  sdk: ^3.8.0
+  flutter: ">=3.35.3"
 
 dependencies:
   flutter:
