@@ -49,13 +49,8 @@ extension type QuadTree$QueryResult._(Float32List _bytes) {
   /// The walk stops when it iterates over all objects or
   /// when the callback returns false.
   void forEach(
-    bool Function(
-      int id,
-      double left,
-      double top,
-      double width,
-      double height,
-    ) cb,
+    bool Function(int id, double left, double top, double width, double height)
+    cb,
   ) {
     if (isEmpty) return;
     final ids = Uint32List.sublistView(_bytes);
@@ -183,14 +178,13 @@ final class QuadTree {
     required Float32List objects,
     required Uint32List recycledIds,
     required Uint32List id2node,
-  })  :
-        // Nodes
-        _nodes = nodes,
-        _recycledNodes = recycledNodes,
-        // Objects
-        _objects = objects,
-        _recycledIds = recycledIds,
-        _id2node = id2node;
+  }) : // Nodes
+       _nodes = nodes,
+       _recycledNodes = recycledNodes,
+       // Objects
+       _objects = objects,
+       _recycledIds = recycledIds,
+       _id2node = id2node;
 
   // --------------------------------------------------------------------------
   // PROPERTIES
@@ -290,10 +284,7 @@ final class QuadTree {
 
     // Get the root node of the QuadTree
     // or create a new one if it does not exist.
-    final root = _root ??= _createNode(
-      parent: null,
-      boundary: boundary,
-    );
+    final root = _root ??= _createNode(parent: null, boundary: boundary);
 
     // Create a new object in the QuadTree.
     final objectId = _getNextObjectId();
@@ -434,10 +425,7 @@ final class QuadTree {
 
     // Resize recycled ids array if needed
     if (_recycledIdsCount == _recycledIds.length)
-      _recycledIds = _resizeUint32List(
-        _recycledIds,
-        _recycledIds.length << 1,
-      );
+      _recycledIds = _resizeUint32List(_recycledIds, _recycledIds.length << 1);
     _recycledIds[_recycledIdsCount++] = objectId;
 
     return true;
@@ -452,13 +440,8 @@ final class QuadTree {
   /// The walk stops when it iterates over all objects or
   /// when the callback returns false.
   void forEach(
-    bool Function(
-      int id,
-      double left,
-      double top,
-      double width,
-      double height,
-    ) cb,
+    bool Function(int id, double left, double top, double width, double height)
+    cb,
   ) {
     final root = _root;
     if (root == null) return;
@@ -1013,7 +996,8 @@ final class QuadTree {
   // --------------------------------------------------------------------------
 
   @override
-  String toString() => 'QuadTree{'
+  String toString() =>
+      'QuadTree{'
       'nodes: $nodes, '
       'objects: $length'
       '}';
@@ -1137,13 +1121,8 @@ final class QuadTree$Node {
   /// when the callback returns false.
   @pragma('vm:prefer-inline')
   void forEach(
-    bool Function(
-      int id,
-      double left,
-      double top,
-      double width,
-      double height,
-    ) cb,
+    bool Function(int id, double left, double top, double width, double height)
+    cb,
   ) {
     if (isEmpty) return;
     if (subdivided) {
@@ -1184,12 +1163,7 @@ final class QuadTree$Node {
     final top = boundary.top;
     final nw = _northWest = tree._createNode(
           parent: this,
-          boundary: ui.Rect.fromLTWH(
-            left,
-            top,
-            halfWidth,
-            halfHeight,
-          ),
+          boundary: ui.Rect.fromLTWH(left, top, halfWidth, halfHeight),
         ),
         ne = _northEast = tree._createNode(
           parent: this,
@@ -1327,7 +1301,8 @@ final class QuadTree$Node {
       identical(this, other) || other is QuadTree$Node && id == other.id;
 
   @override
-  String toString() => r'QuadTree$Node{'
+  String toString() =>
+      r'QuadTree$Node{'
       'id: $id, '
       'objects: $length, '
       'subdivided: $_subdivided'

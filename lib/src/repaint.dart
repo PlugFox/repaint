@@ -46,17 +46,16 @@ class RePaint extends LeafRenderObjectWidget {
     Listenable? repaint,
     bool repaintBoundary = false,
     Key? key,
-  }) =>
-      RePaintInline<T>(
-        render: render,
-        setUp: setUp,
-        update: update,
-        tearDown: tearDown,
-        frameRate: frameRate,
-        repaint: repaint,
-        repaintBoundary: repaintBoundary,
-        key: key,
-      );
+  }) => RePaintInline<T>(
+    render: render,
+    setUp: setUp,
+    update: update,
+    tearDown: tearDown,
+    frameRate: frameRate,
+    repaint: repaint,
+    repaintBoundary: repaintBoundary,
+    key: key,
+  );
 
   /// The painter controller, used to update and paint the scene.
   /// For example, a game controller or a custom painter.
@@ -76,10 +75,10 @@ class RePaint extends LeafRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) => RePaintBox(
-        painter: painter,
-        context: context,
-        isRepaintBoundary: repaintBoundary,
-      );
+    painter: painter,
+    context: context,
+    isRepaintBoundary: repaintBoundary,
+  );
 
   @override
   void updateRenderObject(BuildContext context, RePaintBox renderObject) {
@@ -92,7 +91,8 @@ class RePaint extends LeafRenderObjectWidget {
     renderObject._painter = painter
       ..mount(renderObject, renderObject.owner!)
       ..lifecycle(
-          WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed);
+        WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed,
+      );
   }
 }
 
@@ -136,9 +136,9 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
     required RePainter painter,
     required BuildContext context,
     required bool isRepaintBoundary,
-  })  : _painter = painter,
-        _context = context,
-        _$isRepaintBoundary = isRepaintBoundary;
+  }) : _painter = painter,
+       _context = context,
+       _$isRepaintBoundary = isRepaintBoundary;
 
   /// Current controller.
   RePainter get painter => _painter;
@@ -185,7 +185,8 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
     _painter
       ..mount(this, owner)
       ..lifecycle(
-          WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed);
+        WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed,
+      );
     WidgetsBinding.instance.addObserver(this);
     _ticker = Ticker(onTick, debugLabel: 'RePaintBox')..start();
   }
@@ -194,10 +195,7 @@ class RePaintBox extends RenderBox with WidgetsBindingObserver {
   bool hitTestSelf(Offset position) => true;
 
   @override
-  bool hitTestChildren(
-    BoxHitTestResult result, {
-    required Offset position,
-  }) =>
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
       false;
 
   @override

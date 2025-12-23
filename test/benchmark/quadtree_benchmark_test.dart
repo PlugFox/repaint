@@ -12,123 +12,114 @@ import 'package:vector_math/vector_math.dart' show Vector2;
 // TODO(plugfox): Написать бенчмарк на поиск лучшего capacity для QuadTree
 // Mike Matiunin <plugfox@gmail.com>, 08 January 2025
 
-void main() => group(
-      'QuadTree benchmark',
-      () {
-        var report = true;
+void main() => group('QuadTree benchmark', () {
+  var report = true;
 
-        /*
+  /*
           RePaint QuadTree inserts(RunTime): 934.0045 us.
           Flame QuadTree inserts(RunTime): 26800.415584415583 us.
         */
-        test('Inserts', () {
-          final repaint = _RePaintQuadTreeInsertsBenchmark();
-          if (report)
-            // ignore: dead_code
-            repaint.report();
-          if (repaint.qt.length != 1000)
-            throw Exception('Failed to insert all');
-          final errors = repaint.qt.healthCheck();
-          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
-          expect(errors, isEmpty);
-          final flame = _FlameQuadTreeInsertsBenchmark();
-          if (report)
-            // ignore: dead_code
-            flame.report();
-          if (!report)
-            // ignore: dead_code
-            expect(
-              repaint.measure(),
-              lessThanOrEqualTo(flame.measure()),
-            );
-        });
+  test('Inserts', () {
+    final repaint = _RePaintQuadTreeInsertsBenchmark();
+    if (report)
+      // ignore: dead_code
+      repaint.report();
+    if (repaint.qt.length != 1000) throw Exception('Failed to insert all');
+    final errors = repaint.qt.healthCheck();
+    //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+    expect(errors, isEmpty);
+    final flame = _FlameQuadTreeInsertsBenchmark();
+    if (report)
+      // ignore: dead_code
+      flame.report();
+    if (!report)
+      // ignore: dead_code
+      expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+  });
 
-        /*
+  /*
           RePaint QuadTree inserts & removes(RunTime): 114.04378531073446 us.
           Flame QuadTree inserts & removes(RunTime): 2244.599 us.
         */
-        test('Inserts and removes', () {
-          final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
-          if (report)
-            // ignore: dead_code
-            repaint.report();
-          final errors = repaint.qt.healthCheck();
-          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
-          expect(errors, isEmpty);
-          final flame = _FlameQuadTreeInsertsAndRemovesBenchmark();
-          if (report)
-            // ignore: dead_code
-            flame.report();
-          if (!report)
-            // ignore: dead_code
-            expect(
-              repaint.measure(),
-              lessThanOrEqualTo(flame.measure()),
-            );
-        });
+  test('Inserts and removes', () {
+    final repaint = _RePaintQuadTreeInsertsAndRemovesBenchmark();
+    if (report)
+      // ignore: dead_code
+      repaint.report();
+    final errors = repaint.qt.healthCheck();
+    //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+    expect(errors, isEmpty);
+    final flame = _FlameQuadTreeInsertsAndRemovesBenchmark();
+    if (report)
+      // ignore: dead_code
+      flame.report();
+    if (!report)
+      // ignore: dead_code
+      expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+  });
 
-        /*
+  /*
           RePaint QuadTree query ids(RunTime): 1004.9575 us.
           RePaint QuadTree query map(RunTime): 1825.3253373313344 us.
           RePaint QuadTree query(RunTime): 2058.2428785607194 us.
           Flame QuadTree query(RunTime): 2466.44 us.
         */
-        test('Static query', () {
-          // ~ 560 us to query, 567 us.
-          final repaintIds = _RePaintQuadTreeQueryIdsBenchmark();
-          if (report)
-            // ignore: dead_code
-            repaintIds.report();
-          var errors = repaintIds.qt.healthCheck();
-          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
-          expect(errors, isEmpty);
-          // ~ + 510 us to query & + 500 us to create hash map, 1170 us.
-          final repaintMap = _RePaintQuadTreeQueryMapBenchmark();
-          if (report)
-            // ignore: dead_code
-            repaintMap.report();
-          errors = repaintMap.qt.healthCheck();
-          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
-          expect(errors, isEmpty);
-          // ~ + 1000 us. to query and + 900 us to create hash map, 1945 us
-          final repaintB = _RePaintQuadTreeQueryBenchmark();
-          if (report)
-            // ignore: dead_code
-            repaintB.report();
-          errors = repaintB.qt.healthCheck();
-          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
-          expect(errors, isEmpty);
-          final flame = _FlameQuadTreeQueryBenchmark();
-          if (report)
-            // ignore: dead_code
-            flame.report();
-          if (!report)
-            // ignore: dead_code
-            expect(repaintB.measure(), lessThanOrEqualTo(flame.measure()));
-        });
+  test('Static query', () {
+    // ~ 560 us to query, 567 us.
+    final repaintIds = _RePaintQuadTreeQueryIdsBenchmark();
+    if (report)
+      // ignore: dead_code
+      repaintIds.report();
+    var errors = repaintIds.qt.healthCheck();
+    //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+    expect(errors, isEmpty);
+    // ~ + 510 us to query & + 500 us to create hash map, 1170 us.
+    final repaintMap = _RePaintQuadTreeQueryMapBenchmark();
+    if (report)
+      // ignore: dead_code
+      repaintMap.report();
+    errors = repaintMap.qt.healthCheck();
+    //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+    expect(errors, isEmpty);
+    // ~ + 1000 us. to query and + 900 us to create hash map, 1945 us
+    final repaintB = _RePaintQuadTreeQueryBenchmark();
+    if (report)
+      // ignore: dead_code
+      repaintB.report();
+    errors = repaintB.qt.healthCheck();
+    //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+    expect(errors, isEmpty);
+    final flame = _FlameQuadTreeQueryBenchmark();
+    if (report)
+      // ignore: dead_code
+      flame.report();
+    if (!report)
+      // ignore: dead_code
+      expect(repaintB.measure(), lessThanOrEqualTo(flame.measure()));
+  });
 
-        /*
+  /*
           RePaint QuadTree move(RunTime): 121.95089894606323 us.
           Flame QuadTree move(RunTime): 310.9901587301587 us.
         */
-        test('Move', () {
-          final repaint = _RePaintQuadTreeMoveBenchmark();
-          if (report)
-            // ignore: dead_code
-            repaint.report();
-          final errors = repaint.qt.healthCheck();
-          //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
-          expect(errors, isEmpty);
-          final flame = _FlameQuadTreeMoveBenchmark();
-          if (report)
-            // ignore: dead_code
-            flame.report();
-          if (!report)
-            // ignore: dead_code
-            expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
-        });
+  test('Move', () {
+    final repaint = _RePaintQuadTreeMoveBenchmark();
+    if (report)
+      // ignore: dead_code
+      repaint.report();
+    final errors = repaint.qt.healthCheck();
+    //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+    expect(errors, isEmpty);
+    final flame = _FlameQuadTreeMoveBenchmark();
+    if (report)
+      // ignore: dead_code
+      flame.report();
+    if (!report)
+      // ignore: dead_code
+      expect(repaint.measure(), lessThanOrEqualTo(flame.measure()));
+  });
 
-        /*
+  /*
           18..24 - Best capacity
 
           6: 4128.678 us. Max depth 8 nodes
@@ -145,23 +136,21 @@ void main() => group(
           28: 2896.32125 us. Max depth 6 nodes
           30: 2836.28125 us. Max depth 6 nodes
         */
-        test('Capacity', () {
-          final results = <int, String>{};
-          for (var i = 6; i < 32; i += 2) {
-            final repaint = _RePaintQuadTreeCapacityBenchmark(i);
-            final us = repaint.measure();
-            results[i] = '$us us. Max depth ${repaint.maxDepth} nodes';
-            final errors = repaint.qt.healthCheck();
-            //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
-            expect(errors, isEmpty);
-          }
-          if (report)
-            // ignore: dead_code, avoid_print
-            print(
-                results.entries.map((e) => '${e.key}: ${e.value}').join('\n'));
-        });
-      },
-    );
+  test('Capacity', () {
+    final results = <int, String>{};
+    for (var i = 6; i < 32; i += 2) {
+      final repaint = _RePaintQuadTreeCapacityBenchmark(i);
+      final us = repaint.measure();
+      results[i] = '$us us. Max depth ${repaint.maxDepth} nodes';
+      final errors = repaint.qt.healthCheck();
+      //if (errors.isNotEmpty) throw Exception(errors.join('\n'));
+      expect(errors, isEmpty);
+    }
+    if (report)
+      // ignore: dead_code, avoid_print
+      print(results.entries.map((e) => '${e.key}: ${e.value}').join('\n'));
+  });
+});
 
 class _RePaintQuadTreeInsertsBenchmark extends BenchmarkBase {
   _RePaintQuadTreeInsertsBenchmark() : super('RePaint QuadTree inserts');
@@ -220,7 +209,7 @@ class _FlameQuadTreeInsertsBenchmark extends BenchmarkBase {
 
 class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
   _RePaintQuadTreeInsertsAndRemovesBenchmark()
-      : super('RePaint QuadTree inserts & removes');
+    : super('RePaint QuadTree inserts & removes');
 
   late QuadTree qt;
 
@@ -251,7 +240,7 @@ class _RePaintQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
 
 class _FlameQuadTreeInsertsAndRemovesBenchmark extends BenchmarkBase {
   _FlameQuadTreeInsertsAndRemovesBenchmark()
-      : super('Flame QuadTree inserts & removes');
+    : super('Flame QuadTree inserts & removes');
 
   static final Vector2 _size = Vector2.all(10);
   late flame.QuadTree qt;
@@ -368,8 +357,10 @@ class _FlameQuadTreeQueryBenchmark extends BenchmarkBase {
   _FlameQuadTreeQueryBenchmark() : super('Flame QuadTree query');
 
   late flame.QuadTree qt;
-  static final camera =
-      flame.RectangleHitbox(size: Vector2.all(500), position: Vector2.all(250));
+  static final camera = flame.RectangleHitbox(
+    size: Vector2.all(500),
+    position: Vector2.all(250),
+  );
 
   @override
   void setup() {
@@ -479,7 +470,7 @@ class _FlameQuadTreeMoveBenchmark extends BenchmarkBase {
 
 class _RePaintQuadTreeCapacityBenchmark extends BenchmarkBase {
   _RePaintQuadTreeCapacityBenchmark(this.capacity)
-      : super('RePaint QuadTree capacity: $capacity');
+    : super('RePaint QuadTree capacity: $capacity');
 
   late QuadTree qt;
   final int capacity;
